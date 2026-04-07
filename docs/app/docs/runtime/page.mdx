@@ -1,0 +1,272 @@
+# Runtime API
+
+The runtime module provides the core functions that power Kevlar at render time. Import from `@unlikefraction/kevlar/runtime`.
+
+```ts
+import {
+  defineDesignConfig,
+  KevlarProvider,
+  useKevlarInteraction,
+  deepMerge,
+  validate,
+} from '@unlikefraction/kevlar/runtime';
+```
+
+---
+
+## defineDesignConfig
+
+Identity function that provides `DesignConfig` type enforcement. It does nothing at runtime -- its only purpose is to give you autocomplete and type checking while writing your design config.
+
+```ts
+// kevlar/design.config.ts
+import { defineDesignConfig } from '@unlikefraction/kevlar/runtime';
+
+export default defineDesignConfig({
+  breakpoints: {
+    small_mobile: { max: 374 },
+    mobile: { min: 375, max: 767 },
+    tablet: { min: 768, max: 1023 },
+    desktop: { min: 1024, max: 1439 },
+    widescreen: { min: 1440, max: 1919 },
+    tv: { min: 1920 },
+  },
+  sensoryBudget: {
+    haptic: { maxFires: 3, windowMs: 1000 },
+    audio: { maxFires: 2, windowMs: 1000 },
+    announcement: { maxFires: 5, windowMs: 2000, queue: true },
+  },
+  // ... your design tokens
+});
+```
+
+---
+
+## KevlarProvider
+
+Wraps your app and detects all 19 targets in real time. Every Kevlar primitive (both hook and plain function versions) depends on this provider being mounted.
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `config` | `DesignConfig` | required | Your design config from `defineDesignConfig` |
+| `colorBlind` | `boolean` | `false` | Whether the current user has indicated color blindness |
+| `userSegment` | `'first_time' \| 'normal' \| 'power'` | `'normal'` | Current user segment (falls back to `localStorage` key `kevlar-user-segment`) |
+| `children` | `ReactNode` | required | Your app tree |
+
+### What it detects
+
+KevlarProvider automatically detects and live-tracks all 19 targets:
+
+- **Platform** (6) -- small_mobile, mobile, tablet, desktop, widescreen, tv (from window width + your breakpoints)
+- **Network** (3) -- fast, slow, offline (from `navigator.onLine` + Network Information API)
+- **Accessibility** (4) -- reduced motion, high contrast, keyboard-only, color blind
+- **Input method** (3) -- touch, mouse, dpad (from event listeners, TV defaults to dpad)
+- **System** (2) -- silent mode (AudioContext probe), low battery (Battery API)
+- **User segment** (1) -- from prop, localStorage, or default
+
+All detection is reactive: resize the window and `platform` updates. Go offline and `network` updates. Press Tab and `isKeyboardOnly` flips to true.
+
+### Setup
+
+```tsx
+// app/layout.tsx
+import { KevlarProvider } from '@unlikefraction/kevlar/runtime';
+import config from '../kevlar/design.config';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <KevlarProvider config={config}>
+          {children}
+        </KevlarProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+---
+
+## useKevlarInteraction
+
+The state machine hook that powers every interactive Kevlar component. It manages the full lifecycle of a user interaction: idle, hover, focused, pressed, loading, success, error, and disabled.
+
+### Signature
+
+```ts
+function useKevlarInteraction(
+  spec: KevlarInteractionSpec,
+  options: {
+    onAction: (ctx: KevlarContext) => Promise<void>;
+    destructive?: DestructiveConfig;
+  }
+): KevlarInteractionResult;
+```
+
+### Parameters
+
+**`spec`** -- The merged component specification (states, actions, input, network, timing, animation). This is the result of `deepMerge(baseDefaults, instanceOverrides)`.
+
+**`options.onAction`** -- The async function to run when the user activates the component (click, Enter, Space, tap). Receives a `KevlarContext` with control methods.
+
+**`options.destructive`** -- Optional. If provided, the user must confirm before the action runs.
+
+```ts
+destructive: {
+  onConfirm: async (ctx) => {
+    return window.confirm('Delete this item?');
+  }
+}
+```
+
+### Return value
+
+```ts
+type KevlarInteractionResult = {
+  state: InteractionState;        // current state machine state
+  handlers: {                     // spread onto your element
+    onClick, onMouseEnter, onMouseLeave,
+    onKeyDown, onFocus, onBlur,
+    onTouchStart, onTouchEnd
+  };
+  setState: (state: string) => void;   // manually set state
+  setText: (text: string) => void;     // set display text (e.g. "Still loading...")
+  cancel: () => void;                  // abort current action, reset to idle
+  displayText: string | null;          // current display text override
+  signal: AbortSignal;                 // abort signal for fetch calls
+  currentVisual: CSSProperties;        // resolved visual styles for current state
+};
+```
+
+### The action flow
+
+When the user activates a component, `useKevlarInteraction` executes this sequence:
+
+1. **Trigger** -- User clicks, taps, or presses Enter/Space.
+2. **Rage click check** -- If 3 or more clicks within 500ms, the `onRageClick` handler fires instead.
+3. **Debounce** -- If `timing.debounceMs` is set, waits for the debounce period.
+4. **Destructive check** -- If `destructive` is configured, calls `onConfirm`. If the user cancels, the flow stops.
+5. **Loading** -- State moves to `loading`. Audio, haptic, and announcement modalities fire. Trigger timers start.
+6. **Timeout** -- If `timing.timeoutMs` elapses during loading, the abort signal fires, `onTimeout` runs, and state moves to `error`.
+7. **Min load time** -- If `timing.minLoadTime` is set (e.g. `[300, 500]`), the hook waits at least that long to prevent a flash of loading state.
+8. **Success/Error** -- When `onAction` resolves, state moves to `success`. If it throws, state moves to `error`. Both fire their respective modalities.
+
+### Triggers
+
+Triggers let you update the display text at specific times during loading. Useful for long operations:
+
+```ts
+timing: {
+  triggers: [
+    { at: 3000, text: 'Still working...' },
+    { at: 8000, text: 'Almost there...' },
+    { at: 15000, text: 'This is taking longer than usual' },
+  ]
+}
+```
+
+Text changes are applied only while the component is in the `loading` state. All trigger timers are cleared when the action completes or is cancelled.
+
+### Click during loading
+
+If the user clicks while an action is already in progress, the `onClickDuringLoading` handler fires (if defined). The action is not re-triggered.
+
+### Usage
+
+```tsx
+const interaction = useKevlarInteraction(spec, {
+  onAction: async (ctx) => {
+    const res = await fetch('/api/submit', { signal: ctx.signal });
+    if (!res.ok) throw new Error('Submit failed');
+  },
+});
+
+return (
+  <button {...interaction.handlers} style={interaction.currentVisual}>
+    {interaction.displayText ?? 'Submit'}
+  </button>
+);
+```
+
+---
+
+## deepMerge
+
+Recursively merges instance-level props onto base defaults. This is how component instances override specific slots without replacing the entire spec.
+
+```ts
+function deepMerge<T>(target: T, source: DeepPartial<T> | undefined): T;
+```
+
+### Merge rules
+
+| Source value | Behavior |
+|---|---|
+| `undefined` | Skip -- keep the target value |
+| `null` | Override -- set the target value to `null` |
+| Plain object (and target is also a plain object) | Recurse -- merge keys recursively |
+| Array | Replace -- source array replaces target array entirely |
+| Function | Replace -- source function replaces target function |
+| Primitive (string, number, boolean) | Replace -- source value replaces target value |
+
+### Example
+
+```ts
+const base = {
+  states: {
+    idle: { visual: { bg: 'gray', border: '1px solid' } },
+    hover: { visual: { bg: 'blue' } },
+  },
+  timing: { debounceMs: 200 },
+};
+
+const instance = {
+  states: {
+    idle: { visual: { bg: 'white' } },  // only overrides bg, border survives
+  },
+  timing: { debounceMs: 0 },            // replaces debounceMs
+};
+
+const merged = deepMerge(base, instance);
+// merged.states.idle.visual = { bg: 'white', border: '1px solid' }
+// merged.states.hover.visual = { bg: 'blue' }  (untouched)
+// merged.timing.debounceMs = 0
+```
+
+---
+
+## validate
+
+Dev-mode-only function that walks a merged spec and finds any surviving sentinel values (`MUST_BE_DEFINED` markers). If any are found, it throws a detailed error showing exactly which slots still need to be filled.
+
+```ts
+function validate(
+  spec: Record<string, any>,
+  componentName: string,
+  instanceLabel?: string
+): void;
+```
+
+### Behavior
+
+- **In production** (`NODE_ENV === 'production'`): no-op. Zero overhead.
+- **In development**: recursively walks every key of `spec`. For each value that is a sentinel symbol, it records the full path, sentinel name, and guidance text.
+
+If violations are found, it throws:
+
+```
+Kevlar: Button "Submit Order" cannot render.
+
+  states.loading.announcement = STRING_MUST_BE_DEFINED
+  --- Provide a string value
+
+  timing.timeoutMs = NUMBER_MUST_BE_DEFINED
+  --- Provide a number value
+```
+
+### When it runs
+
+`validate` is called automatically by `useKevlarInteraction` on mount and when the spec changes. You do not need to call it manually unless you are building a custom hook.

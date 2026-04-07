@@ -1,0 +1,225 @@
+# Layout
+
+Layout components inherit from **BaseContainer**. They have minimal states -- their primary purpose is structural. They exist in Kevlar so that every component in the tree passes validation.
+
+---
+
+### AppShell
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:**
+- `platformDefaults` -- which sections collapse on which platforms
+- Burger toggle uses the Burger component separately
+
+**Key behavior:** Platform-adaptive layout shell. On small_mobile and mobile, navbar and aside are collapsed by default. On tablet, aside is collapsed but navbar is visible. On desktop, everything is visible. These defaults are configurable via `platformDefaults`.
+
+```tsx
+import { AppShell, Burger } from './kevlar';
+
+<AppShell
+  header={{ height: 60 }}
+  navbar={{ width: 300, breakpoint: 'sm' }}
+>
+  <AppShell.Header>
+    <Burger opened={navOpened} aria-label="Toggle navigation"
+      onKevlarAction={async () => { toggleNav(); }}
+      announce={{ loading: '', success: 'Toggled', error: '' }} />
+  </AppShell.Header>
+  <AppShell.Navbar>Navigation</AppShell.Navbar>
+  <AppShell.Main>Content</AppShell.Main>
+</AppShell>
+```
+
+---
+
+### Container
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Centers content with a max-width. Max-width values come from the design config breakpoints. No interaction states.
+
+```tsx
+import { Container } from './kevlar';
+
+<Container size="md">
+  <Text>Centered content with max-width</Text>
+</Container>
+```
+
+---
+
+### Flex
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Flexbox container. Convenience wrapper for `display: flex` with props for `direction`, `wrap`, `justify`, `align`, and `gap`.
+
+```tsx
+import { Flex, Button } from './kevlar';
+
+<Flex gap="md" justify="center" align="center">
+  <Button onKevlarAction={async () => {}}
+    announce={{ loading: '', success: '', error: '' }}>One</Button>
+  <Button onKevlarAction={async () => {}}
+    announce={{ loading: '', success: '', error: '' }}>Two</Button>
+</Flex>
+```
+
+---
+
+### Grid
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** CSS Grid layout with a 12-column system. `Grid.Col` sets `span` per breakpoint. Responsive column spans are defined inline -- no external config needed.
+
+```tsx
+import { Grid } from './kevlar';
+
+<Grid>
+  <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>Column 1</Grid.Col>
+  <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>Column 2</Grid.Col>
+  <Grid.Col span={{ base: 12, md: 12, lg: 4 }}>Column 3</Grid.Col>
+</Grid>
+```
+
+---
+
+### Group
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Horizontal flex container with consistent gap. Items are laid out in a row with configurable `justify` and `gap`. Wraps by default when content overflows.
+
+```tsx
+import { Group, Badge } from './kevlar';
+
+<Group>
+  <Badge>React</Badge>
+  <Badge>TypeScript</Badge>
+  <Badge>Mantine</Badge>
+</Group>
+```
+
+---
+
+### SimpleGrid
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** CSS Grid with equal-width columns. Simpler than Grid -- just set `cols` per breakpoint. All columns are the same width.
+
+```tsx
+import { SimpleGrid, Card } from './kevlar';
+
+<SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+  <Card>Item 1</Card>
+  <Card>Item 2</Card>
+  <Card>Item 3</Card>
+</SimpleGrid>
+```
+
+---
+
+### Stack
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Vertical flex container with consistent gap. Items are stacked vertically. Convenience wrapper for `Flex` with `direction="column"`.
+
+```tsx
+import { Stack, Text } from './kevlar';
+
+<Stack gap="md">
+  <Text>First item</Text>
+  <Text>Second item</Text>
+  <Text>Third item</Text>
+</Stack>
+```
+
+---
+
+### Center
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Centers its child both horizontally and vertically. Uses flexbox centering. Can render as `inline` for inline centering.
+
+```tsx
+import { Center, Loader } from './kevlar';
+
+<Center style={{ height: 400 }}>
+  <Loader aria-label="Loading content" />
+</Center>
+```
+
+---
+
+### Space
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Adds horizontal (`w`) or vertical (`h`) whitespace. Purely structural. `aria-hidden="true"`.
+
+```tsx
+import { Space } from './kevlar';
+
+<Text>Above</Text>
+<Space h="xl" />
+<Text>Below</Text>
+```
+
+---
+
+### AspectRatio
+
+**Base:** BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Maintains a fixed aspect ratio for its child content. Uses the CSS `aspect-ratio` property. Useful for responsive images and video embeds where dimensions must be preserved.
+
+```tsx
+import { AspectRatio, Image } from './kevlar';
+
+<AspectRatio ratio={16 / 9}>
+  <Image src="/video-thumbnail.jpg" alt="Video preview" />
+</AspectRatio>
+```

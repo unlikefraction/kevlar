@@ -1,0 +1,187 @@
+# Targets
+
+Targets are the dimensions every component must consciously handle. Kevlar detects them. The component reacts. You cannot ship a Kevlar app that ignores TV users, or color blind users, or slow networks, or muted phones.
+
+There are 17 required targets and 2 special targets. Every component file imports all 17 required targets and uses them inline where they matter.
+
+```ts
+import {
+  // Platform (6)
+  isSmallMobile, isMobile, isTablet, isDesktop, isWidescreen, isTV,
+  // Network (3)
+  isFast, isSlow, isOffline,
+  // Accessibility (4)
+  prefersReducedMotion, prefersHighContrast, isKeyboardOnly, isColorBlind,
+  // Input Method (3)
+  isTouchDevice, isMouseDevice, isDpadDevice,
+  // System (1)
+  isSilentMode,
+  // Special (2)
+  isLowBattery, getUserSegment,
+} from '@unlikefraction/kevlar/primitives';
+```
+
+---
+
+## Required Targets (17)
+
+### Platform (6)
+
+| Target | Detection | What the component must decide |
+|--------|-----------|-------------------------------|
+| `isSmallMobile()` | Viewport at most `breakpoints.small_mobile.max` (359px) | Touch target size, layout, font size, simplified animations |
+| `isMobile()` | Viewport in mobile range (360-767px) | Touch targets, bottom-sheet overlays, simplified interactions |
+| `isTablet()` | Viewport in tablet range (768-1023px) | Touch targets, layout density |
+| `isDesktop()` | Viewport in desktop range (1024-1439px) | Hover states, keyboard shortcuts, information density |
+| `isWidescreen()` | Viewport in widescreen range (1440-1919px) | Layout, content width |
+| `isTV()` | Viewport at least `breakpoints.tv.min` (1920px) | 10-foot focus rings, scale on focus, remote/d-pad input, larger text |
+
+### Network (3)
+
+| Target | Detection | What the component must decide |
+|--------|-----------|-------------------------------|
+| `isFast()` | Online with good connection | Proceed normally? Preload? |
+| `isSlow()` | `effectiveType` is 2g or slow-2g | Show loading immediately? Degrade gracefully? Show placeholder? |
+| `isOffline()` | `navigator.onLine === false` | Disable? Queue? Show cached? Show message? |
+
+### Accessibility (4)
+
+| Target | Detection | What the component must decide |
+|--------|-----------|-------------------------------|
+| `prefersReducedMotion()` | `prefers-reduced-motion: reduce` | Strip all animation, keep opacity fades only |
+| `prefersHighContrast()` | `prefers-contrast: more` or `forced-colors` | Add visible borders, stronger outlines, thicker focus rings |
+| `isKeyboardOnly()` | Tab/Arrow detected, no mouse/touch | Focus ring always visible |
+| `isColorBlind()` | Set via `KevlarProvider` prop | Never communicate state through color alone (add icons, patterns, text) |
+
+### Input Method (3)
+
+| Target | Detection | What the component must decide |
+|--------|-----------|-------------------------------|
+| `isTouchDevice()` | `touchstart` detected or `pointer: coarse` | Touch targets, instant feedback, swipe gestures |
+| `isMouseDevice()` | `mousemove` detected or `pointer: fine` | Hover states, right-click, drag-and-drop |
+| `isDpadDevice()` | TV platform with remote detected | Directional navigation, select/back mapping, large focus indicators |
+
+### System (1)
+
+| Target | Detection | What the component must decide |
+|--------|-----------|-------------------------------|
+| `isSilentMode()` | System mute detection | If your component plays audio on press/success/error, what happens when the user is muted? Enhance haptic instead? Enhance visual feedback? Do nothing? You decide, but you must decide. |
+
+---
+
+## Special Targets (2)
+
+Available but not mandatory per component. For specific situations.
+
+| Target | Detection | Used for |
+|--------|-----------|----------|
+| `isLowBattery()` | `navigator.getBattery()` below 15% | Components with haptic. When low battery, `fireHaptic()` is a no-op. Component can optionally enhance visual feedback instead. |
+| `getUserSegment()` | `localStorage` key `kevlar-user-segment` | Returns `'first_time'`, `'normal'`, or `'power'`. Components can adjust animation speed, feedback verbosity, onboarding hints. Not every component needs to differ across segments. |
+
+---
+
+## How Targets Are Used
+
+No override objects. No platform blocks. Just the primitives called inline where they matter.
+
+### TV shadow example
+
+The hover visual for a button checks `isTV()` and adjusts shadow and scale:
+
+```tsx
+hover: {
+  visual: (ctx) => ({
+    cursor: 'pointer',
+    opacity: 1,
+    shadow: isTV() ? config.shadows.high : config.shadows.low,
+    translateY: isTV() ? 0 : -1,
+    scale: isTV() ? config.tv.focusScale : 1,
+  }),
+},
+```
+
+On TV, the element gets a larger shadow and scales up instead of translating. On everything else, it gets a subtle lift. The target is called at the point of use. The config value is referenced by name.
+
+### Reduced motion example
+
+The enter animation checks `prefersReducedMotion()` and user segment:
+
+```tsx
+enter: () => {
+  if (prefersReducedMotion()) return config.animationPresets.none;
+  if (getUserSegment() === 'power') return config.animationPresets.instant;
+  return config.animationPresets.fadeIn;
+},
+```
+
+Users who prefer reduced motion get no animation. Power users get instant transitions. Everyone else gets a fade. Three lines. No abstraction between the question and the answer.
+
+### Network handlers example
+
+The network block forces a decision for each connection state:
+
+```tsx
+onFast:    (ctx) => {},
+onSlow:    (ctx) => { ctx.setState('loading'); },
+onOffline: (ctx) => { ctx.setState('disabled'); ctx.setText('You are offline'); },
+```
+
+On a fast connection, proceed normally (empty function is a conscious decision to do nothing). On slow, immediately show the loading state. Offline, disable the element and tell the user why.
+
+### Focus ring with high contrast and TV
+
+The focused state visual combines multiple targets:
+
+```tsx
+focused: {
+  visual: (ctx) => ({
+    cursor: 'pointer',
+    opacity: 1,
+    outline: {
+      width: isTV()
+        ? config.tv.focusRing.width
+        : prefersHighContrast()
+          ? 4
+          : config.focusRing.width,
+      color: config.focusRing.color,
+      offset: isTV() ? config.tv.focusRing.offset : config.focusRing.offset,
+      style: config.focusRing.style,
+    },
+    ...(prefersHighContrast() && {
+      borderWidth: 3, borderStyle: 'solid', borderColor: config.colors.focus,
+    }),
+  }),
+},
+```
+
+TV gets the wide 8px focus ring. High contrast users get a 4px ring plus a solid border. Everyone else gets the standard 3px ring. All from the same function, all inline.
+
+### Silent mode example
+
+The pressed state audio checks `isSilentMode()`:
+
+```tsx
+pressed: {
+  audio: (ctx) => {
+    if (!isSilentMode()) playSound(config.sounds.click);
+  },
+  haptic: (ctx) => { fireHaptic(config.haptics.tap); },
+},
+```
+
+When the phone is muted, the click sound does not play but the haptic still fires (unless the sensory budget is exhausted or the battery is low). The tech lead made this decision once in the base. Every interactive component inherits it.
+
+### Keyboard-only focus ring
+
+The focus ring visibility adapts to input method:
+
+```tsx
+keyboard: {
+  focusRing: () => ({
+    visible: isKeyboardOnly() ? 'always' : 'keyboard-only',
+    ...config.focusRing,
+  }),
+},
+```
+
+Mouse users only see the focus ring when they start tabbing. Keyboard-only users see it always. One line. One target. One decision.

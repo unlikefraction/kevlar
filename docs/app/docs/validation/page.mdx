@@ -1,0 +1,154 @@
+# Validation
+
+Kevlar validates every component spec at render time in development. If any `MUST_BE_DEFINED` sentinel survives to render, the component throws with a detailed error. Beyond sentinels, Kevlar also enforces structural rules that catch common mistakes.
+
+All validation is dev-mode only. In production (`NODE_ENV === 'production'`), every check is a no-op.
+
+---
+
+## Universal checks (all components)
+
+These four checks apply to every Kevlar component, regardless of base.
+
+### 1. All states have 4 modalities
+
+Every state object must define `visual`, `audio`, `haptic`, and `screenreader`. If any modality is missing or still a sentinel, the component throws.
+
+```
+Kevlar: Button "Submit" cannot render.
+  states.hover.audio = FUNCTION_MUST_BE_DEFINED
+```
+
+### 2. Valid animation transitions
+
+Animation transition keys must match valid state pairs. For example, `idle_to_hover` is valid for BaseInteractive, but `idle_to_loading` is not (you cannot jump from idle directly to loading without pressing first). The validator checks that all defined transitions correspond to legal state machine edges.
+
+### 3. Hover/keyboard/touch consistency
+
+If a component defines a hover visual change, it must also define equivalent keyboard (focused) and touch (pressed) visual changes. This ensures that mouse-only styling does not leave keyboard and touch users without feedback.
+
+### 4. All 17 targets handled
+
+The validator checks that the component spec accounts for all target categories. This does not mean every primitive must be called -- it means the spec must have made a decision for each category:
+
+- 6 platform targets
+- 3 network targets
+- 4 accessibility targets
+- 3 input method targets
+- 1 system target (silent mode)
+
+---
+
+## BaseInteractive checks (4)
+
+Components using BaseInteractive: Button, ActionIcon, CloseButton, CopyButton, FileButton, UnstyledButton, Anchor, NavLink, Burger, Card (interactive), Pill.
+
+### 1. `onKevlarAction` defined
+
+Every interactive component must have an `onKevlarAction` handler. This is the async function that runs when the user activates the component. Without it, clicking the component does nothing.
+
+### 2. Loading/success/error announcements
+
+The `loading`, `success`, and `error` states must each have a non-sentinel `announcement` string. Screen reader users need to know what is happening during async operations.
+
+```tsx
+announce={{
+  loading: 'Submitting your order...',
+  success: 'Order submitted successfully',
+  error: 'Order failed. Please try again.',
+}}
+```
+
+### 3. Network handlers
+
+`network.onFast`, `network.onSlow`, and `network.onOffline` must all be defined. The component must have a plan for each network state.
+
+### 4. Timeout handler
+
+`timing.timeoutMs` and `timing.onTimeout` must both be defined. Every async operation needs a timeout and a plan for when it fires.
+
+---
+
+## BaseInput checks (3)
+
+Components using BaseInput: TextInput, Textarea, NumberInput, PasswordInput, PinInput, JsonInput, ColorInput, FileInput, NativeSelect, Slider, RangeSlider, Rating, SegmentedControl, Switch, Checkbox, Radio, Chip, Select, MultiSelect, Autocomplete, TagsInput.
+
+### 1. Label defined
+
+Every input must have a `label` prop. Inputs without labels are inaccessible to screen readers. Use `badly_skip_input_label_and_hurt_accessibility` to opt out.
+
+### 2. Invalid announcement
+
+The `invalid` state must have a non-sentinel `announcement` string. When validation fails, screen reader users need to hear what went wrong.
+
+```tsx
+announce={{ invalid: 'Invalid email address. Please use format name@example.com.' }}
+```
+
+### 3. Enter key defined
+
+`input.keyboard.bindings.Enter` must be defined. The component must decide what Enter does: submit the form, insert a newline (Textarea), or do nothing.
+
+---
+
+## BaseOverlay checks (5)
+
+Components using BaseOverlay: Modal, Drawer, Dialog, Popover, Tooltip, HoverCard, Menu, Combobox, Overlay, LoadingOverlay, Affix, FloatingIndicator, FloatingWindow.
+
+### 1. Title (Modal/Drawer)
+
+Modal and Drawer must have a `title` prop for screen readers. Use `badly_skip_modal_title_and_hurt_accessibility` to opt out (but provide `aria-label` instead).
+
+### 2. `onClickOutside` defined
+
+The spec must define what happens when the user clicks outside the overlay. Options: close, ignore, show a warning, or prevent.
+
+### 3. `onEscape` defined
+
+The spec must define what happens when the user presses Escape. This is critical for keyboard users who need a way to dismiss overlays.
+
+### 4. `Tab.trap` defined
+
+`input.keyboard.Tab.trap` must be explicitly `true` or `false`. For modals, it should almost always be `true`. Use `dangerously_skip_focus_trap` to set it to `false`.
+
+### 5. `focus.onOpen` and `focus.onClose` defined
+
+The spec must define where focus goes when the overlay opens and where it returns when the overlay closes. Focus management is the most common overlay accessibility failure.
+
+---
+
+## BaseMedia checks (4)
+
+Components using BaseMedia: Image, Avatar (with image).
+
+### 1. `alt` defined
+
+Every media element must have alt text. Use `badly_skip_alt_text_and_hurt_accessibility` to opt out for decorative images (but still pass `alt=""`).
+
+### 2. `width`+`height` or `aspectRatio`
+
+Images must define dimensions to prevent Cumulative Layout Shift (CLS). Use `badly_allow_layout_shift_and_dont_define_size` to opt out.
+
+### 3. Network handlers
+
+`network.onFast`, `network.onSlow`, and `network.onOffline` must all be defined. The component must have a plan for loading strategy, quality selection, and offline behavior.
+
+### 4. `fallback.onError`
+
+The spec must define what happens when the image fails to load. Show a fallback image? Retry? Hide the element?
+
+---
+
+## Component-specific checks (3)
+
+### Radio must be in RadioGroup
+
+A `Radio` component must be rendered inside a `RadioGroup`. Standalone radio buttons are a pattern error -- they cannot be deselected without a group.
+
+### Tab must be in Tabs
+
+A `Tabs.Tab` component must be rendered inside a `Tabs` wrapper. The tab needs the tablist context for proper ARIA roles and keyboard navigation.
+
+### Accordion.Item must be in Accordion
+
+An `Accordion.Item` must be rendered inside an `Accordion` wrapper. The item needs the accordion context for expand/collapse coordination and keyboard navigation.

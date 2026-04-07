@@ -1,0 +1,257 @@
+# Navigation
+
+Navigation components inherit from **BaseNavigation**. They use the roving tabindex pattern: only one item in the group is tabbable at a time, and arrow keys move between items. States: idle, hover, focused, active, disabled.
+
+---
+
+### Tabs
+
+**Base:** BaseNavigation
+
+**States:** idle, hover, focused, active, disabled
+
+**Dev-fill slots:**
+- `onTabChange` -- tab change handler (required)
+- `announce.active` -- screen reader announcement for active tab (required)
+
+**Key behavior:** Arrow Left/Right navigate between tabs. Home/End jump to first/last tab. Screen reader roles: `tablist`, `tab`, `tabpanel`. Active tab has `aria-selected="true"`.
+
+**Validation:** `Tabs.Tab` must be rendered inside a `Tabs` wrapper.
+
+```tsx
+import { Tabs } from './kevlar';
+
+<Tabs
+  defaultValue="overview"
+  onTabChange={(value, ctx) => { setActiveTab(value); }}
+  announce={{ active: 'Tab selected' }}
+>
+  <Tabs.List>
+    <Tabs.Tab value="overview">Overview</Tabs.Tab>
+    <Tabs.Tab value="settings">Settings</Tabs.Tab>
+    <Tabs.Tab value="billing">Billing</Tabs.Tab>
+  </Tabs.List>
+  <Tabs.Panel value="overview">Overview content</Tabs.Panel>
+  <Tabs.Panel value="settings">Settings content</Tabs.Panel>
+  <Tabs.Panel value="billing">Billing content</Tabs.Panel>
+</Tabs>
+```
+
+---
+
+### Breadcrumbs
+
+**Base:** BaseNavigation
+
+**States:** idle, hover, focused, active, disabled
+
+**Dev-fill slots:**
+- Navigation items use BaseInteractive (each breadcrumb is a link/button)
+- `separator` -- visual separator between items
+
+**Key behavior:** Last breadcrumb is the current page (not a link, marked with `aria-current="page"`). All others are navigable links.
+
+```tsx
+import { Breadcrumbs, Anchor } from './kevlar';
+
+<Breadcrumbs>
+  <Anchor href="/" onKevlarAction={async () => { router.push('/'); }}
+    announce={{ loading: 'Navigating...', success: 'Navigated', error: 'Navigation failed' }}>
+    Home
+  </Anchor>
+  <Anchor href="/products" onKevlarAction={async () => { router.push('/products'); }}
+    announce={{ loading: 'Navigating...', success: 'Navigated', error: 'Navigation failed' }}>
+    Products
+  </Anchor>
+  <span>Widget Pro</span>
+</Breadcrumbs>
+```
+
+---
+
+### Pagination
+
+**Base:** BaseNavigation
+
+**States:** idle, hover, focused, active, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- page change handler (required)
+- `announce.active` -- screen reader announcement for active page (required)
+- `total` -- total number of pages (required)
+
+**Key behavior:** Arrow keys navigate between page buttons. Current page has `aria-current="page"`. Ellipsis elements are not focusable.
+
+```tsx
+import { Pagination } from './kevlar';
+
+<Pagination
+  total={20}
+  onKevlarAction={async (ctx) => { await loadPage(ctx.value); }}
+  announce={{ active: 'Page selected' }}
+/>
+```
+
+---
+
+### Stepper
+
+**Base:** BaseNavigation
+
+**States:** idle, hover, focused, active, completed, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- step change handler (required)
+- `announce.active` -- screen reader announcement for active step (required)
+
+**Key behavior:** Steps can be completed, active, or disabled. Completed steps are navigable (click to go back). Disabled future steps are not focusable. Screen reader announces step number and status.
+
+```tsx
+import { Stepper } from './kevlar';
+
+<Stepper
+  active={1}
+  onKevlarAction={async (ctx) => { await goToStep(ctx.value); }}
+  announce={{ active: 'Step activated' }}
+>
+  <Stepper.Step label="Account" description="Create account" />
+  <Stepper.Step label="Profile" description="Fill profile" />
+  <Stepper.Step label="Review" description="Review and submit" />
+</Stepper>
+```
+
+---
+
+### NavLink
+
+**Base:** BaseNavigation + BaseDisclosure (when has children)
+
+**States:** idle, hover, focused, active, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- navigation handler (required)
+- `announce.active` -- screen reader announcement (required)
+
+**Key behavior:** When `children` are provided, acts as a disclosure (expand/collapse nested links). Arrow Right expands, Arrow Left collapses. Active link has `aria-current="page"`.
+
+```tsx
+import { NavLink } from './kevlar';
+
+<NavLink
+  label="Dashboard"
+  onKevlarAction={async () => { router.push('/dashboard'); }}
+  announce={{ active: 'Dashboard selected' }}
+/>
+
+{/* With nested links */}
+<NavLink label="Settings" announce={{ active: 'Settings expanded' }}>
+  <NavLink label="General" onKevlarAction={async () => { router.push('/settings/general'); }}
+    announce={{ active: 'General settings selected' }} />
+  <NavLink label="Security" onKevlarAction={async () => { router.push('/settings/security'); }}
+    announce={{ active: 'Security settings selected' }} />
+</NavLink>
+```
+
+---
+
+### TableOfContents
+
+**Base:** BaseNavigation
+
+**States:** idle, hover, focused, active, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- scroll-to-section handler (required)
+- `announce.active` -- screen reader announcement (required)
+
+**Key behavior:** Highlights the currently visible section as the user scrolls. Uses `IntersectionObserver` for scroll tracking. Arrow keys navigate between heading links.
+
+```tsx
+import { TableOfContents } from './kevlar';
+
+<TableOfContents
+  links={[
+    { label: 'Introduction', link: '#intro', order: 1 },
+    { label: 'Setup', link: '#setup', order: 1 },
+    { label: 'Usage', link: '#usage', order: 1 },
+  ]}
+  onKevlarAction={async (ctx) => { scrollToSection(ctx.value); }}
+  announce={{ active: 'Section selected' }}
+/>
+```
+
+---
+
+### Tree
+
+**Base:** BaseNavigation + BaseDisclosure
+
+**States:** idle, hover, focused, active, expanded, collapsed, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- node selection handler (required)
+- `announce.active` -- screen reader announcement (required)
+
+**Key behavior:** Tree navigation with `role="tree"`, `role="treeitem"`. Arrow Right expands a node, Arrow Left collapses or moves to parent. Arrow Up/Down move between visible nodes. Home/End jump to first/last visible node.
+
+```tsx
+import { Tree } from './kevlar';
+
+<Tree
+  data={treeData}
+  onKevlarAction={async (ctx) => { await selectNode(ctx.value); }}
+  announce={{ active: 'Node selected' }}
+/>
+```
+
+---
+
+### Anchor
+
+**Base:** BaseInteractive (in navigation context) or BaseStatic (plain link)
+
+**States:** idle, hover, focused, pressed, loading, success, error, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- navigation handler (required)
+- `announce.loading` / `announce.success` / `announce.error` (required)
+
+**Key behavior:** Renders an `a` element with Kevlar interaction handling. For client-side navigation, use `onKevlarAction` to call `router.push()`. For external links, the action can be a no-op (the native `href` handles navigation).
+
+```tsx
+import { Anchor } from './kevlar';
+
+<Anchor
+  href="/about"
+  onKevlarAction={async () => { router.push('/about'); }}
+  announce={{ loading: 'Navigating...', success: 'Navigated', error: 'Navigation failed' }}
+>
+  About us
+</Anchor>
+```
+
+---
+
+### Burger
+
+**Base:** BaseInteractive
+
+**States:** idle, hover, focused, pressed, opened, closed, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- toggle handler (required)
+- `announce.loading` / `announce.success` / `announce.error` (required)
+- `aria-label` -- describes the toggle action (e.g. "Toggle navigation")
+
+**Key behavior:** Hamburger menu toggle. Animates between open (X) and closed (three lines) states. Used with AppShell for mobile navigation toggle.
+
+```tsx
+import { Burger } from './kevlar';
+
+<Burger
+  opened={navOpened}
+  aria-label="Toggle navigation"
+  onKevlarAction={async () => { toggleNav(); }}
+  announce={{ loading: 'Toggling...', success: 'Navigation toggled', error: 'Toggle failed' }}
+/>
+```

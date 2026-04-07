@@ -1,0 +1,92 @@
+# CLI
+
+Kevlar ships a CLI for scaffolding projects and initializing component files.
+
+```bash
+npx kevlar --help
+```
+
+```
+Kevlar -- Component scaffold for Mantine v9
+
+Usage:
+  kevlar init              Scaffold kevlar/ into current project
+  kevlar create <name>     Create new Next.js project with Kevlar
+  kevlar --help            Show this help
+
+Every component. Every state. Every target. Every decision. Filled or it throws.
+```
+
+---
+
+## `npx kevlar init`
+
+Scaffolds the `kevlar/` directory into your current project. Copies all templates (design config, 9 base components, 108 component files, and the index re-export) into a `kevlar/` folder at your current working directory.
+
+```bash
+cd my-existing-project
+npx kevlar init
+```
+
+This command will fail if a `kevlar/` directory already exists. Remove it first if you want to re-initialize.
+
+### Created folder structure
+
+```
+kevlar/
+  design.config.ts              # Your design language
+  index.ts                      # Re-exports everything
+  base/
+    BaseInteractive.tsx          # Buttons, action icons, anchors
+    BaseInput.tsx                # Text inputs, selects, sliders
+    BaseOverlay.tsx              # Modals, drawers, popovers
+    BaseMedia.tsx                # Images, avatars
+    BaseNavigation.tsx           # Tabs, breadcrumbs, pagination
+    BaseFeedback.tsx             # Notifications, alerts, progress
+    BaseStatic.tsx               # Text, badges, dividers
+    BaseContainer.tsx            # AppShell, grid, scroll area
+    BaseDisclosure.tsx           # Accordion, collapse, spoiler
+  components/
+    Button.tsx                   # 108 component files
+    TextInput.tsx
+    Modal.tsx
+    Image.tsx
+    ...
+```
+
+Every file is full of `MUST_BE_DEFINED` sentinel markers. Your job is to replace each one with a conscious decision.
+
+---
+
+## `npx kevlar create my-app`
+
+Creates a new Next.js project with Mantine v9 and Kevlar pre-configured in one command.
+
+```bash
+npx kevlar create my-app
+```
+
+This runs three steps:
+
+1. `npx create-next-app@latest` with TypeScript, Tailwind, ESLint, App Router, and src directory
+2. `npm install @mantine/core @mantine/hooks @unlikefraction/kevlar`
+3. `kevlar init` inside the `src/` directory
+
+After creation:
+
+```bash
+cd my-app
+npm run dev
+```
+
+The command will fail if a directory with the given name already exists.
+
+---
+
+## Next steps after scaffolding
+
+1. Open `kevlar/design.config.ts` and fill in your breakpoints, sensory budgets, and design tokens
+2. Work through `kevlar/base/*.tsx` -- replace every `MUST_BE_DEFINED` with your project's decisions
+3. Start using components: `import { Button } from './kevlar'`
+
+Every `MUST_BE_DEFINED` is a question. Answer them all.

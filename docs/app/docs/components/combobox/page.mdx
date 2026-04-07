@@ -1,0 +1,198 @@
+# Combobox
+
+Combobox components are composites of **BaseInput** (for the text field) and **BaseOverlay** (for the dropdown). They share the combobox ARIA pattern: `role="combobox"` with `aria-expanded`, `aria-haspopup="listbox"`, and `aria-activedescendant`.
+
+---
+
+### Select
+
+**Base:** BaseInput + BaseOverlay
+
+**States:** idle, hover, focused, open, filtering, loading, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- selection handler (required)
+- `announce.invalid`, `label`
+- `data` -- options array
+- Overlay: `onClickOutside`, `onEscape`
+
+**Key behavior:** Opens a dropdown listbox on focus/click. Arrow keys navigate options. Enter selects. Escape closes. `Tab.trap` is `false` (Tab moves to next field, not trapped inside dropdown).
+
+**Screen reader:** `role="combobox"` with `aria-expanded` toggling on open/close. Active option announced via `aria-activedescendant`.
+
+```tsx
+import { Select } from './kevlar';
+
+<Select
+  label="Country"
+  data={['United States', 'Canada', 'Mexico']}
+  onKevlarAction={async (ctx) => { await setCountry(ctx.value); }}
+  announce={{ invalid: 'Please select a country' }}
+/>
+```
+
+---
+
+### MultiSelect
+
+**Base:** BaseInput + BaseOverlay
+
+**States:** idle, hover, focused, open, filtering, loading, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- selection handler (required)
+- `announce.invalid`, `label`
+- `data` -- options array
+- `maxValues` -- maximum number of selections
+
+**Key behavior:** Selected values appear as pills inside the input. Each pill is removable (Backspace or click X). Arrow keys navigate the dropdown. Space/Enter toggle selection.
+
+```tsx
+import { MultiSelect } from './kevlar';
+
+<MultiSelect
+  label="Tags"
+  data={['React', 'TypeScript', 'Node.js', 'Python']}
+  onKevlarAction={async (ctx) => { await setTags(ctx.value); }}
+  announce={{ invalid: 'Select at least one tag' }}
+/>
+```
+
+---
+
+### Autocomplete
+
+**Base:** BaseInput + BaseOverlay
+
+**States:** idle, hover, focused, open, filtering, loading, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- selection/input handler (required)
+- `announce.invalid`, `label`
+- `data` -- options array (static or from async search)
+- Network: `onSlow` (defer suggestions), `onOffline` (disable suggestions)
+
+**Key behavior:** Filters options as the user types. Unlike Select, the user can also submit a value that is not in the list. Loading state shows when fetching suggestions from an API.
+
+```tsx
+import { Autocomplete } from './kevlar';
+
+<Autocomplete
+  label="City"
+  data={['New York', 'Los Angeles', 'Chicago', 'Houston']}
+  onKevlarAction={async (ctx) => { await setCity(ctx.value); }}
+  announce={{ invalid: 'Please enter a valid city' }}
+/>
+```
+
+---
+
+### TagsInput
+
+**Base:** BaseInput + BaseOverlay
+
+**States:** idle, hover, focused, open, filtering, loading, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- tag management handler (required)
+- `announce.invalid`, `label`
+- `data` -- suggestion options
+- `maxTags` -- maximum number of tags
+
+**Key behavior:** User types and presses Enter or comma to create a tag. Tags appear as pills. Duplicate detection is built in. Backspace removes the last tag when the input is empty.
+
+```tsx
+import { TagsInput } from './kevlar';
+
+<TagsInput
+  label="Keywords"
+  data={['react', 'typescript', 'mantine']}
+  onKevlarAction={async (ctx) => { await saveKeywords(ctx.value); }}
+  announce={{ invalid: 'Too many keywords' }}
+/>
+```
+
+---
+
+### Combobox
+
+**Base:** BaseInput + BaseOverlay
+
+**States:** idle, hover, focused, open, filtering, loading, disabled
+
+**Dev-fill slots:**
+- All BaseInput and BaseOverlay slots
+- This is the low-level primitive that Select, MultiSelect, Autocomplete, and TagsInput build on
+
+**Key behavior:** Provides the full combobox pattern without opinions about selection behavior. Use this when the higher-level components do not fit your use case.
+
+```tsx
+import { Combobox } from './kevlar';
+
+<Combobox
+  onOptionSubmit={(val) => handleSelect(val)}
+  store={comboboxStore}
+>
+  <Combobox.Target>
+    <input value={value} onChange={handleChange} />
+  </Combobox.Target>
+  <Combobox.Dropdown>
+    <Combobox.Options>
+      {options.map((opt) => (
+        <Combobox.Option key={opt} value={opt}>{opt}</Combobox.Option>
+      ))}
+    </Combobox.Options>
+  </Combobox.Dropdown>
+</Combobox>
+```
+
+---
+
+### Pill
+
+**Base:** BaseInteractive (when removable) or BaseStatic
+
+**States (removable):** idle, hover, focused, pressed, disabled
+
+**Dev-fill slots:**
+- `onRemove` -- remove handler (for removable pills)
+- `aria-label` -- label for the remove action
+
+**Key behavior:** Static pill is a BaseStatic component (display only). When `onRemove` is provided, it becomes interactive with a remove button. Used internally by MultiSelect and TagsInput.
+
+```tsx
+import { Pill } from './kevlar';
+
+<Pill
+  withRemoveButton
+  onRemove={() => removeTag('react')}
+>
+  react
+</Pill>
+```
+
+---
+
+### PillsInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, disabled
+
+**Dev-fill slots:**
+- `label` (required)
+- Input wrapper for displaying pills alongside a text input
+
+**Key behavior:** Renders pills inside an input-like container. Used as the base for MultiSelect and TagsInput visual layout. Not typically used directly.
+
+```tsx
+import { PillsInput, Pill } from './kevlar';
+
+<PillsInput label="Selected items">
+  <Pill.Group>
+    <Pill>React</Pill>
+    <Pill>TypeScript</Pill>
+    <PillsInput.Field placeholder="Add more..." />
+  </Pill.Group>
+</PillsInput>
+```

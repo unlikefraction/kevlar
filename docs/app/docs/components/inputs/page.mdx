@@ -1,0 +1,551 @@
+# Inputs
+
+All input components inherit from **BaseInput**. They share states (idle, hover, focused, typing, validating, valid, invalid, disabled), validation timing, and the keyboard/touch/mouse input model.
+
+---
+
+### TextInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- action handler (required)
+- `announce.invalid` -- screen reader announcement on validation failure (required)
+- `label` -- input label (required, or use shame prop)
+- `keyboard.bindings.Enter` -- pre-filled to submit form
+
+```tsx
+import { TextInput } from './kevlar';
+
+<TextInput
+  label="Email"
+  onKevlarAction={async (ctx) => { await validateEmail(ctx.value); }}
+  announce={{ invalid: 'Invalid email address' }}
+/>
+```
+
+---
+
+### NumberInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `announce.invalid`, `label`
+- `min`, `max`, `step` -- numeric constraints
+
+**Key behavior:** Mouse scroll over the input increments/decrements the value. Arrow Up/Down also increment/decrement.
+
+```tsx
+import { NumberInput } from './kevlar';
+
+<NumberInput
+  label="Quantity"
+  min={1}
+  max={100}
+  onKevlarAction={async (ctx) => { await updateQuantity(ctx.value); }}
+  announce={{ invalid: 'Quantity must be between 1 and 100' }}
+/>
+```
+
+---
+
+### PasswordInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `announce.invalid`, `label`
+- Toggle visibility button inherits ActionIcon behavior
+
+**Key behavior:** Includes a visibility toggle (show/hide password). The toggle button has its own `aria-label` (`"Show password"` / `"Hide password"`).
+
+```tsx
+import { PasswordInput } from './kevlar';
+
+<PasswordInput
+  label="Password"
+  onKevlarAction={async (ctx) => { await validatePassword(ctx.value); }}
+  announce={{ invalid: 'Password must be at least 8 characters' }}
+/>
+```
+
+---
+
+### Textarea
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `announce.invalid`, `label`
+- `keyboard.bindings.Enter` -- pre-filled to insert newline (not submit)
+
+```tsx
+import { Textarea } from './kevlar';
+
+<Textarea
+  label="Description"
+  onKevlarAction={async (ctx) => { await saveDescription(ctx.value); }}
+  announce={{ invalid: 'Description is required' }}
+/>
+```
+
+---
+
+### JsonInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `announce.invalid`, `label`
+- JSON syntax validation is built in
+
+**Key behavior:** Validates JSON syntax on blur. Invalid JSON triggers the `invalid` state with a parse error message.
+
+```tsx
+import { JsonInput } from './kevlar';
+
+<JsonInput
+  label="Configuration (JSON)"
+  onKevlarAction={async (ctx) => { await saveConfig(JSON.parse(ctx.value)); }}
+  announce={{ invalid: 'Invalid JSON syntax' }}
+/>
+```
+
+---
+
+### ColorInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `announce.invalid`, `label`
+- Color picker dropdown uses BaseOverlay slots
+
+**Key behavior:** Composite component: text input + color picker overlay. The overlay follows BaseOverlay rules (focus trap, Escape to close).
+
+```tsx
+import { ColorInput } from './kevlar';
+
+<ColorInput
+  label="Brand color"
+  onKevlarAction={async (ctx) => { await saveBrandColor(ctx.value); }}
+  announce={{ invalid: 'Invalid color format' }}
+/>
+```
+
+---
+
+### PinInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `announce.invalid`, `label`
+- `length` -- number of digits
+
+**Key behavior:** Auto-advances focus to the next input on digit entry. Backspace moves focus backward. Paste fills all fields.
+
+```tsx
+import { PinInput } from './kevlar';
+
+<PinInput
+  label="Verification code"
+  length={6}
+  onKevlarAction={async (ctx) => { await verifyCode(ctx.value); }}
+  announce={{ invalid: 'Invalid verification code' }}
+/>
+```
+
+---
+
+### FileInput
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `announce.invalid`, `label`
+- `accept`, `multiple`
+
+**Key behavior:** Displays selected file name(s) in the input. Drag-and-drop support follows `input.mouse.onDragAndDrop`.
+
+```tsx
+import { FileInput } from './kevlar';
+
+<FileInput
+  label="Upload document"
+  accept="application/pdf"
+  onKevlarAction={async (ctx) => { await uploadDocument(ctx.files); }}
+  announce={{ invalid: 'Please select a PDF file' }}
+/>
+```
+
+---
+
+### NativeSelect
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+- `data` -- options array
+
+**Key behavior:** Uses the native browser `select` element. Fewer states than other inputs since the browser handles the dropdown.
+
+```tsx
+import { NativeSelect } from './kevlar';
+
+<NativeSelect
+  label="Country"
+  data={['United States', 'Canada', 'Mexico']}
+  onKevlarAction={async (ctx) => { await setCountry(ctx.value); }}
+/>
+```
+
+---
+
+### Slider
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, dragging, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+- `min`, `max`, `step`
+- `announce.valueChange` -- announced on value change for screen readers
+
+**Key behavior:** Dragging state replaces typing. Arrow keys increment/decrement by `step`. Touch input supports full drag along the track.
+
+```tsx
+import { Slider } from './kevlar';
+
+<Slider
+  label="Volume"
+  min={0}
+  max={100}
+  onKevlarAction={async (ctx) => { await setVolume(ctx.value); }}
+/>
+```
+
+---
+
+### RangeSlider
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, dragging, disabled
+
+**Dev-fill slots:** Same as Slider, but with two thumbs for min/max range selection.
+
+```tsx
+import { RangeSlider } from './kevlar';
+
+<RangeSlider
+  label="Price range"
+  min={0}
+  max={1000}
+  onKevlarAction={async (ctx) => { await setPriceRange(ctx.value); }}
+/>
+```
+
+---
+
+### AlphaSlider
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, dragging, disabled
+
+**Dev-fill slots:** Same as Slider. Range is 0 to 1 for alpha/opacity values.
+
+```tsx
+import { AlphaSlider } from './kevlar';
+
+<AlphaSlider
+  label="Opacity"
+  onKevlarAction={async (ctx) => { await setOpacity(ctx.value); }}
+/>
+```
+
+---
+
+### HueSlider
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, dragging, disabled
+
+**Dev-fill slots:** Same as Slider. Range is 0 to 359 for hue values.
+
+```tsx
+import { HueSlider } from './kevlar';
+
+<HueSlider
+  label="Hue"
+  onKevlarAction={async (ctx) => { await setHue(ctx.value); }}
+/>
+```
+
+---
+
+### Rating
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+- `count` -- number of rating items
+
+**Key behavior:** Keyboard: Arrow Left/Right to change rating. Each star/item has its own hover state. Screen reader announces "Rating: 3 of 5 stars".
+
+```tsx
+import { Rating } from './kevlar';
+
+<Rating
+  label="Product rating"
+  count={5}
+  onKevlarAction={async (ctx) => { await submitRating(ctx.value); }}
+/>
+```
+
+---
+
+### SegmentedControl
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, active, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+- `data` -- options array
+
+**Key behavior:** Acts like a radio group visually. The active segment has a sliding indicator animation. Arrow keys move between segments.
+
+```tsx
+import { SegmentedControl } from './kevlar';
+
+<SegmentedControl
+  label="View mode"
+  data={['List', 'Grid', 'Calendar']}
+  onKevlarAction={async (ctx) => { await setViewMode(ctx.value); }}
+/>
+```
+
+---
+
+### Switch
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, checked, unchecked, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+- `announce.checked` / `announce.unchecked`
+
+**Key behavior:** Toggle between checked and unchecked states. Space bar toggles. Screen reader announces the current state.
+
+```tsx
+import { Switch } from './kevlar';
+
+<Switch
+  label="Enable notifications"
+  onKevlarAction={async (ctx) => { await toggleNotifications(ctx.checked); }}
+  announce={{ invalid: 'Could not update notification preference' }}
+/>
+```
+
+---
+
+### Checkbox
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, checked, unchecked, indeterminate, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+
+**Key behavior:** Supports indeterminate state for "select all" patterns. Space bar toggles.
+
+```tsx
+import { Checkbox } from './kevlar';
+
+<Checkbox
+  label="I agree to the terms"
+  onKevlarAction={async (ctx) => { await acceptTerms(ctx.checked); }}
+  announce={{ invalid: 'You must accept the terms to continue' }}
+/>
+```
+
+---
+
+### Radio
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, checked, unchecked, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+
+**Key behavior:** Must be inside a `RadioGroup`. Arrow keys move between radio options in the group.
+
+**Validation:** Throws if rendered outside a `RadioGroup`.
+
+```tsx
+import { Radio, RadioGroup } from './kevlar';
+
+<RadioGroup label="Plan" onKevlarAction={async (ctx) => { await setPlan(ctx.value); }}>
+  <Radio value="free" label="Free" />
+  <Radio value="pro" label="Pro" />
+  <Radio value="enterprise" label="Enterprise" />
+</RadioGroup>
+```
+
+---
+
+### Chip
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, checked, unchecked, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+
+**Key behavior:** Toggle chip acts like a checkbox. Can be used in single-select or multi-select groups.
+
+```tsx
+import { Chip } from './kevlar';
+
+<Chip
+  label="Dark mode"
+  onKevlarAction={async (ctx) => { await toggleDarkMode(ctx.checked); }}
+  announce={{ invalid: 'Could not update theme preference' }}
+>
+  Dark mode
+</Chip>
+```
+
+---
+
+### Input
+
+**Base:** BaseInput
+
+**States:** idle, hover, focused, typing, validating, valid, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+
+**Key behavior:** Base input component. Use for custom input implementations. All other input components build on top of this.
+
+```tsx
+import { Input } from './kevlar';
+
+<Input
+  label="Custom field"
+  onKevlarAction={async (ctx) => { await saveCustomField(ctx.value); }}
+  announce={{ invalid: 'Invalid input' }}
+/>
+```
+
+---
+
+### InputWrapper
+
+**Base:** BaseInput (wrapper only)
+
+**States:** N/A (wraps other inputs)
+
+**Dev-fill slots:**
+- `label` -- label for the group of inputs
+- `error` -- error message display
+
+**Key behavior:** Provides label, description, and error message display for custom input compositions. Does not manage interaction state itself.
+
+```tsx
+import { InputWrapper, Input } from './kevlar';
+
+<InputWrapper label="Full name" error={nameError}>
+  <Input component="input" />
+</InputWrapper>
+```
+
+---
+
+### CheckboxGroup
+
+**Base:** BaseInput (group wrapper)
+
+**States:** idle, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+- `announce.invalid`
+
+**Key behavior:** Groups multiple Checkbox components. Manages collective value as an array. Validation can enforce min/max selections.
+
+```tsx
+import { Checkbox, CheckboxGroup } from './kevlar';
+
+<CheckboxGroup
+  label="Interests"
+  onKevlarAction={async (ctx) => { await saveInterests(ctx.value); }}
+  announce={{ invalid: 'Select at least one interest' }}
+>
+  <Checkbox value="sports" label="Sports" />
+  <Checkbox value="music" label="Music" />
+  <Checkbox value="tech" label="Technology" />
+</CheckboxGroup>
+```
+
+---
+
+### RadioGroup
+
+**Base:** BaseInput (group wrapper)
+
+**States:** idle, invalid, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction`, `label`
+- `announce.invalid`
+
+**Key behavior:** Groups Radio components. Arrow keys navigate between options. Only one option can be selected.
+
+```tsx
+import { Radio, RadioGroup } from './kevlar';
+
+<RadioGroup
+  label="Payment method"
+  onKevlarAction={async (ctx) => { await setPaymentMethod(ctx.value); }}
+  announce={{ invalid: 'Please select a payment method' }}
+>
+  <Radio value="card" label="Credit card" />
+  <Radio value="paypal" label="PayPal" />
+</RadioGroup>
+```

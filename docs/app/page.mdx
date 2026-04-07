@@ -1,0 +1,29 @@
+# Kevlar
+
+**Component scaffold for Mantine v9 that forces conscious decisions about every dimension of user interaction.**
+
+108 components. 17 targets. 9 bases. 1 design config. Fill every slot or it won't render.
+
+```bash
+npx kevlar init
+```
+
+---
+
+## What is Kevlar?
+
+Kevlar is not a component library. It's a **scaffold**. When you run `npx kevlar init`, it generates 108 component files, 9 base components, and 1 design config directly into your project. Your code. In your repo. Reviewed in PRs.
+
+Every component ships full of `MUST_BE_DEFINED` markers. The tech lead replaces them with conscious decisions about:
+
+- **17 required targets** — platform, network, accessibility, input method, silent mode
+- **8 states x 4 modalities** — visual, audio, haptic, screenreader for every state
+- **Network behavior** — what happens on fast, slow, and offline connections
+- **Animations** — with full respect for `prefers-reduced-motion`
+- **Touch, mouse, keyboard, and d-pad input** — every interaction path covered
+
+If any `MUST_BE_DEFINED` survives to render time, the component throws with an error showing exactly what to fill and where.
+
+The experience is intentionally unpleasant at first. The output is worth the cost.
+
+[Get Started →](/docs/getting-started)

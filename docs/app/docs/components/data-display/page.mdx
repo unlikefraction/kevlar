@@ -1,0 +1,319 @@
+# Data Display
+
+Data display components use various bases depending on their interactivity. Most inherit from **BaseStatic** for pure presentation, **BaseMedia** for images, or **BaseDisclosure** for expandable content.
+
+---
+
+### Card
+
+**Base:** BaseContainer (static) or BaseInteractive (when `onKevlarAction` is provided)
+
+**States (static):** idle
+
+**States (interactive):** idle, hover, focused, pressed, skeleton, selected, disabled
+
+**Dev-fill slots (interactive):**
+- `onKevlarAction` -- click handler (makes the card interactive)
+- `touch.onLongPress`, `touch.onSwipe`
+
+**Key behavior:** Static by default. When `onKevlarAction` is provided, the card becomes a clickable interactive element with full BaseInteractive behavior. Skeleton state shows a shimmer placeholder. Selected state adds an outline.
+
+```tsx
+import { Card, Text } from './kevlar';
+
+{/* Static card */}
+<Card>
+  <Text>Static content</Text>
+</Card>
+
+{/* Interactive card */}
+<Card
+  onKevlarAction={async () => { router.push('/item/123'); }}
+  announce={{ loading: 'Opening...', success: 'Opened', error: 'Failed to open' }}
+>
+  <Text>Click to view details</Text>
+</Card>
+```
+
+---
+
+### Image
+
+**Base:** BaseMedia
+
+**States:** idle, loading, loaded, error
+
+**Dev-fill slots:**
+- `alt` -- alt text (required, or use `badly_skip_alt_text_and_hurt_accessibility`)
+- `width` + `height` or `aspectRatio` (required, or use `badly_allow_layout_shift_and_dont_define_size`)
+- `network.onFast`, `network.onSlow`, `network.onOffline`
+- `fallback.onError` -- what to show when image fails to load
+
+**Key behavior:** Network-adaptive loading strategy and quality selection. LQIP/blurhash placeholder during loading. Fade-in reveal on load. CLS prevention through required dimensions.
+
+```tsx
+import { Image } from './kevlar';
+
+<Image
+  src="/hero.jpg"
+  alt="Mountain landscape at sunset"
+  width={1200}
+  height={600}
+/>
+```
+
+---
+
+### Avatar
+
+**Base:** BaseMedia (with image) or BaseStatic (initials/icon)
+
+**States (with image):** idle, loading, loaded, error
+
+**States (initials/icon):** idle
+
+**Dev-fill slots:**
+- `alt` -- alt text for image avatars (required, or use shame prop)
+- `name` -- used to generate initials fallback
+
+**Key behavior:** Attempts to load the image source. On error, falls back to initials (from `name`) or a default icon. Circle shape by default.
+
+```tsx
+import { Avatar } from './kevlar';
+
+<Avatar
+  src="/avatars/user-123.jpg"
+  alt="Jane Doe"
+  name="Jane Doe"
+/>
+
+{/* Initials fallback */}
+<Avatar name="Jane Doe" />
+```
+
+---
+
+### Badge
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None (purely presentational)
+
+**Key behavior:** Static label element. No interaction states. Screen reader reads the text content naturally. Color variants are defined in the base.
+
+```tsx
+import { Badge } from './kevlar';
+
+<Badge color="green">Active</Badge>
+<Badge color="red">Expired</Badge>
+```
+
+---
+
+### Accordion
+
+**Base:** BaseDisclosure (items) + BaseContainer (wrapper)
+
+**States:** idle, hover, focused, expanded, collapsed, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- expand/collapse handler
+- `announce.expanded` / `announce.collapsed`
+
+**Key behavior:** `role="region"` with `aria-labelledby` pointing to the trigger. Arrow Up/Down navigate between accordion items. Enter/Space toggles expand/collapse. Supports single or multiple items open at once.
+
+**Validation:** `Accordion.Item` must be inside an `Accordion` wrapper.
+
+```tsx
+import { Accordion } from './kevlar';
+
+<Accordion>
+  <Accordion.Item value="faq-1">
+    <Accordion.Control>How does billing work?</Accordion.Control>
+    <Accordion.Panel>
+      We bill monthly based on usage.
+    </Accordion.Panel>
+  </Accordion.Item>
+  <Accordion.Item value="faq-2">
+    <Accordion.Control>Can I cancel anytime?</Accordion.Control>
+    <Accordion.Panel>
+      Yes, you can cancel at any time.
+    </Accordion.Panel>
+  </Accordion.Item>
+</Accordion>
+```
+
+---
+
+### Spoiler
+
+**Base:** BaseDisclosure
+
+**States:** idle, expanded, collapsed
+
+**Dev-fill slots:**
+- `maxHeight` -- height before content is clipped
+- `showLabel` / `hideLabel` -- toggle button text
+- `announce.expanded` / `announce.collapsed`
+
+**Key behavior:** Clips content beyond `maxHeight` and shows a "Show more" button. The toggle button follows BaseInteractive behavior. Animation respects `prefers-reduced-motion`.
+
+```tsx
+import { Spoiler } from './kevlar';
+
+<Spoiler maxHeight={120} showLabel="Show more" hideLabel="Show less">
+  <Text>Long content that may be clipped...</Text>
+</Spoiler>
+```
+
+---
+
+### Indicator
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None (purely decorative overlay)
+
+**Key behavior:** Renders a small badge/dot at a corner of its child element. Used for notification counts, online status, etc. `aria-hidden="true"` on the indicator itself -- use `aria-label` on the parent to convey the information to screen readers.
+
+```tsx
+import { Indicator, Avatar } from './kevlar';
+
+<Indicator label="3" color="red">
+  <Avatar src="/avatar.jpg" alt="User with 3 notifications" />
+</Indicator>
+```
+
+---
+
+### ColorSwatch
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Displays a color sample. `aria-label` should describe the color for screen readers (e.g., "Brand blue, #228be6").
+
+```tsx
+import { ColorSwatch } from './kevlar';
+
+<ColorSwatch color="#228be6" aria-label="Brand blue" />
+```
+
+---
+
+### Kbd
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Displays a keyboard key visual. Purely presentational. Screen reader reads the text content.
+
+```tsx
+import { Kbd } from './kevlar';
+
+<Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
+```
+
+---
+
+### NumberFormatter
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Formats numbers with locale-aware separators, currency symbols, and units. Purely presentational. No ARIA concerns beyond readable text.
+
+```tsx
+import { NumberFormatter } from './kevlar';
+
+<NumberFormatter value={1234567} thousandSeparator="," prefix="$" />
+```
+
+---
+
+### ThemeIcon
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders an icon inside a themed container (colored circle/square). `aria-hidden="true"` -- the icon is decorative. Use alongside text that conveys the meaning.
+
+```tsx
+import { ThemeIcon } from './kevlar';
+
+<ThemeIcon color="blue" size="lg">
+  <CheckIcon />
+</ThemeIcon>
+```
+
+---
+
+### OverflowList
+
+**Base:** BaseStatic + BaseInteractive (for the overflow button)
+
+**States:** idle
+
+**Dev-fill slots:**
+- `onOverflow` -- how to display overflowed items ("+3 more" button, dropdown)
+
+**Key behavior:** Renders items horizontally. Items that do not fit are hidden and represented by an overflow indicator. Resizes reactively. The overflow button opens a popover or menu with the hidden items.
+
+```tsx
+import { OverflowList } from './kevlar';
+
+<OverflowList>
+  <Badge>Tag 1</Badge>
+  <Badge>Tag 2</Badge>
+  <Badge>Tag 3</Badge>
+  <Badge>Tag 4</Badge>
+  <Badge>Tag 5</Badge>
+</OverflowList>
+```
+
+---
+
+### Timeline
+
+**Base:** BaseStatic or BaseNavigation (when interactive)
+
+**States (static):** idle
+
+**States (interactive):** idle, hover, focused, active, disabled
+
+**Dev-fill slots (interactive):**
+- `onKevlarAction` -- item click handler
+
+**Key behavior:** Vertical timeline with items. Items can be static (display only) or interactive (clickable to navigate/expand). Active item is highlighted. Screen reader reads items in order.
+
+```tsx
+import { Timeline } from './kevlar';
+
+<Timeline active={1}>
+  <Timeline.Item title="Order placed">
+    Your order has been placed.
+  </Timeline.Item>
+  <Timeline.Item title="Shipped">
+    Your order is on the way.
+  </Timeline.Item>
+  <Timeline.Item title="Delivered">
+    Package delivered.
+  </Timeline.Item>
+</Timeline>
+```

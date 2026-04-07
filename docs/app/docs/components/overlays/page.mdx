@@ -1,0 +1,339 @@
+# Overlays
+
+Overlay components inherit from **BaseOverlay**. They have a lifecycle: idle, opening, open, closing, closed. Key concerns: focus trapping, backdrop behavior, scroll locking, Escape key handling, and click-outside dismissal.
+
+---
+
+### Modal
+
+**Base:** BaseOverlay
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- `title` -- required for screen readers (or use `badly_skip_modal_title_and_hurt_accessibility`)
+- `announce.open` -- screen reader announcement when opened (required)
+- `focus.onOpen` -- where focus goes when modal opens
+- `focus.onClose` -- where focus returns when modal closes
+- `onClickOutside`, `onEscape`, `onBackdropClick`
+
+**Key behavior:** Focus is trapped inside the modal (`Tab.trap = true`). Escape closes. Backdrop click closes (configurable). On mobile, renders as a bottom sheet with swipe-down-to-close. Screen reader: `role="dialog"`, `aria-modal="true"`.
+
+**Validation:** Throws if `title` is missing (unless shame prop is set). Throws if `focus.onOpen` and `focus.onClose` are not defined.
+
+```tsx
+import { Modal } from './kevlar';
+
+<Modal
+  opened={opened}
+  onClose={close}
+  title="Confirm deletion"
+  announce={{ open: 'Confirmation dialog opened. Press Escape to close.' }}
+  focus={{
+    onOpen: (ctx) => { document.getElementById('confirm-btn')?.focus(); },
+    onClose: (ctx) => { document.getElementById('delete-trigger')?.focus(); },
+  }}
+>
+  <Text>Are you sure you want to delete this item?</Text>
+  <Button id="confirm-btn" onKevlarAction={handleDelete}
+    announce={{ loading: 'Deleting...', success: 'Deleted', error: 'Failed' }}>
+    Delete
+  </Button>
+</Modal>
+```
+
+---
+
+### Drawer
+
+**Base:** BaseOverlay
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- `title` -- required for screen readers (or use `badly_skip_modal_title_and_hurt_accessibility`)
+- `announce.open` -- screen reader announcement (required)
+- `focus.onOpen`, `focus.onClose`
+- `position` -- top, right, bottom, left
+
+**Key behavior:** Same focus trapping rules as Modal. Slides in from the specified edge. Swipe gesture to dismiss on touch devices (swipe direction matches position). `dangerously_skip_focus_trap` available.
+
+```tsx
+import { Drawer } from './kevlar';
+
+<Drawer
+  opened={opened}
+  onClose={close}
+  title="Filters"
+  position="right"
+  announce={{ open: 'Filter drawer opened' }}
+  focus={{
+    onOpen: (ctx) => { document.getElementById('first-filter')?.focus(); },
+    onClose: (ctx) => { document.getElementById('filter-trigger')?.focus(); },
+  }}
+>
+  {/* Filter controls */}
+</Drawer>
+```
+
+---
+
+### Dialog
+
+**Base:** BaseOverlay
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- `announce.open` -- screen reader announcement (required)
+- `onClickOutside`, `onEscape`
+
+**Key behavior:** Non-modal dialog (does not trap focus by default). Users can still interact with content behind the dialog. Use `dangerously_skip_focus_trap` is the default here (focus trap is off). Position is fixed on screen.
+
+```tsx
+import { Dialog } from './kevlar';
+
+<Dialog
+  opened={opened}
+  onClose={close}
+  announce={{ open: 'Quick action dialog opened' }}
+>
+  <Text>Do you want to save changes?</Text>
+</Dialog>
+```
+
+---
+
+### Popover
+
+**Base:** BaseOverlay
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- `onClickOutside`, `onEscape`
+- `target` -- the element the popover is anchored to
+- `position` -- top, right, bottom, left (with alignment)
+
+**Key behavior:** Positioned relative to a target element using floating-ui. Focus is not trapped (Tab moves out of the popover). Escape closes. Click outside closes.
+
+```tsx
+import { Popover, Button, Text } from './kevlar';
+
+<Popover>
+  <Popover.Target>
+    <Button onKevlarAction={async () => {}}
+      announce={{ loading: '', success: '', error: '' }}>
+      Show details
+    </Button>
+  </Popover.Target>
+  <Popover.Dropdown>
+    <Text>Additional information here</Text>
+  </Popover.Dropdown>
+</Popover>
+```
+
+---
+
+### HoverCard
+
+**Base:** BaseOverlay
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- Trigger delay (open/close delays)
+- `onClickOutside`, `onEscape`
+
+**Key behavior:** Opens on hover (mouse) or focus (keyboard). Has configurable open and close delays to prevent flickering. Closes when the pointer leaves both the trigger and the card. Keyboard: opens on focus, closes on Escape or blur.
+
+```tsx
+import { HoverCard, Text, Anchor } from './kevlar';
+
+<HoverCard>
+  <HoverCard.Target>
+    <Anchor href="/user/123" onKevlarAction={async () => {}}
+      announce={{ loading: '', success: '', error: '' }}>
+      @username
+    </Anchor>
+  </HoverCard.Target>
+  <HoverCard.Dropdown>
+    <Text>User profile preview</Text>
+  </HoverCard.Dropdown>
+</HoverCard>
+```
+
+---
+
+### Tooltip
+
+**Base:** BaseOverlay
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- `label` -- tooltip text (required)
+- Open/close delay
+
+**Key behavior:** Simple text overlay on hover/focus. `role="tooltip"`, referenced by `aria-describedby` on the target. Opens after a configurable delay (default: 300ms). Touch devices: appears on long press. Respects `prefers-reduced-motion` for enter/exit animation.
+
+```tsx
+import { Tooltip, ActionIcon } from './kevlar';
+
+<Tooltip label="Delete this item">
+  <ActionIcon aria-label="Delete" onKevlarAction={handleDelete}
+    announce={{ loading: 'Deleting...', success: 'Deleted', error: 'Failed' }}>
+    <TrashIcon />
+  </ActionIcon>
+</Tooltip>
+```
+
+---
+
+### Menu
+
+**Base:** BaseOverlay + BaseNavigation (for menu items)
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- `onClickOutside`, `onEscape`
+- Menu items follow BaseInteractive (each item has states)
+
+**Key behavior:** `role="menu"` with `role="menuitem"` children. Arrow Up/Down navigate items. Enter/Space activate. Escape closes. Home/End jump to first/last item. First letter navigation supported.
+
+```tsx
+import { Menu, Button } from './kevlar';
+
+<Menu>
+  <Menu.Target>
+    <Button onKevlarAction={async () => {}}
+      announce={{ loading: '', success: '', error: '' }}>
+      Actions
+    </Button>
+  </Menu.Target>
+  <Menu.Dropdown>
+    <Menu.Item>Edit</Menu.Item>
+    <Menu.Item>Duplicate</Menu.Item>
+    <Menu.Divider />
+    <Menu.Item color="red">Delete</Menu.Item>
+  </Menu.Dropdown>
+</Menu>
+```
+
+---
+
+### FloatingWindow
+
+**Base:** BaseOverlay
+
+**States:** idle, opening, open, closing, closed
+
+**Dev-fill slots:**
+- `announce.open` -- screen reader announcement
+- Drag handle, resize behavior
+- `onClickOutside`, `onEscape`
+
+**Key behavior:** Draggable and optionally resizable floating panel. Focus management follows non-modal dialog pattern. Can be minimized/maximized. Z-index stacking managed by Kevlar's overlay manager.
+
+```tsx
+import { FloatingWindow } from './kevlar';
+
+<FloatingWindow
+  title="Chat"
+  announce={{ open: 'Chat window opened' }}
+>
+  {/* Chat content */}
+</FloatingWindow>
+```
+
+---
+
+### FloatingIndicator
+
+**Base:** BaseOverlay (minimal)
+
+**States:** idle, active
+
+**Dev-fill slots:**
+- Target element to indicate
+- Animation style (slide, fade)
+
+**Key behavior:** Visual indicator that follows the active element in a group (e.g., active tab indicator, selected segment). Animated position transition. No focus management (purely decorative). `aria-hidden="true"`.
+
+```tsx
+import { FloatingIndicator } from './kevlar';
+
+<FloatingIndicator target={activeTabRef} parent={tabListRef} />
+```
+
+---
+
+### Overlay
+
+**Base:** BaseOverlay (backdrop only)
+
+**States:** idle, visible
+
+**Dev-fill slots:**
+- `onClick` -- behavior when backdrop is clicked
+- Opacity, color, blur
+
+**Key behavior:** Semi-transparent backdrop layer. Used by Modal and Drawer internally. When used standalone, prevents interaction with content behind it. `aria-hidden="true"` (the overlay itself is not announced).
+
+```tsx
+import { Overlay } from './kevlar';
+
+<Overlay opacity={0.5} onClick={handleDismiss} />
+```
+
+---
+
+### Affix
+
+**Base:** BaseOverlay (positioning only)
+
+**States:** visible, hidden
+
+**Dev-fill slots:**
+- `position` -- fixed position on the viewport
+- Scroll threshold for show/hide
+
+**Key behavior:** Fixes an element to a viewport position (e.g., "scroll to top" button). Shows/hides based on scroll position. Uses `position: fixed`. The child component manages its own interaction states.
+
+```tsx
+import { Affix, Button } from './kevlar';
+
+<Affix position={{ bottom: 20, right: 20 }}>
+  <Button onKevlarAction={async () => { window.scrollTo({ top: 0 }); }}
+    announce={{ loading: '', success: 'Scrolled to top', error: '' }}>
+    Scroll to top
+  </Button>
+</Affix>
+```
+
+---
+
+### LoadingOverlay
+
+**Base:** BaseOverlay
+
+**States:** idle, visible
+
+**Dev-fill slots:**
+- `announce.visible` -- screen reader announcement when loading overlay appears
+- Loader style, overlay opacity
+
+**Key behavior:** Covers a parent container with a semi-transparent overlay and centered loader. `aria-busy="true"` on the parent element. Prevents all interaction with the covered content. Animation respects `prefers-reduced-motion`.
+
+```tsx
+import { LoadingOverlay } from './kevlar';
+
+<div style={{ position: 'relative' }}>
+  <LoadingOverlay
+    visible={isLoading}
+    announce={{ visible: 'Content is loading' }}
+  />
+  {/* Content that is loading */}
+</div>
+```

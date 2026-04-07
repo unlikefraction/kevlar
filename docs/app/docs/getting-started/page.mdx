@@ -1,0 +1,177 @@
+# Getting Started
+
+## Installation
+
+**Into an existing project:**
+
+```bash
+npx kevlar init
+```
+
+**Scaffold a new Next.js project with Kevlar:**
+
+```bash
+npx kevlar create my-app
+```
+
+Both commands generate the `kevlar/` folder in your project root. Everything inside is your code, in your repo, reviewed in PRs.
+
+---
+
+## What Gets Created
+
+```
+your-project/
+  kevlar/
+    design.config.ts            # one file — your entire design language
+    base/                       # 9 base components
+      BaseInteractive.tsx
+      BaseInput.tsx
+      BaseStatic.tsx
+      BaseOverlay.tsx
+      BaseContainer.tsx
+      BaseFeedback.tsx
+      BaseNavigation.tsx
+      BaseDisclosure.tsx
+      BaseMedia.tsx
+    components/                 # 108 component files
+      Button.tsx
+      ActionIcon.tsx
+      TextInput.tsx
+      Modal.tsx
+      Image.tsx
+      ... (108 files total)
+    index.ts                    # re-exports everything
+```
+
+Every file ships full of `MUST_BE_DEFINED` markers. That is the point. You open these files and make conscious decisions about every interaction in your app.
+
+---
+
+## The Flow
+
+```
+Day 0:   npx kevlar init
+           └─ Everything is MUST_BE_DEFINED
+
+Day 1-3: Tech lead fills kevlar/design.config.ts
+           └─ Colors, sounds, haptics, animation curves,
+              breakpoints, touch targets, timing defaults
+
+Day 3-7: Tech lead fills kevlar/base/*.tsx
+           └─ Goes through each base, replaces every MUST_BE_DEFINED
+           └─ References config everywhere: config.shadows.low,
+              config.sounds.click, config.focusRing
+           └─ Uses targets inline: isTV(), prefersReducedMotion(),
+              isSilentMode()
+           └─ Leaves STRING_MUST_BE_DEFINED for per-instance things
+              (announcements, labels)
+
+Day 7+:  Devs use components
+           └─ import { Button } from '../kevlar'
+           └─ Fill remaining blanks via props (announce, onKevlarAction)
+           └─ Override any base decision if their instance needs
+              something different
+           └─ Any surviving MUST_BE_DEFINED at render → error with
+              exact instructions
+```
+
+---
+
+## KevlarProvider Setup
+
+Wrap your app with `KevlarProvider` at the root. This sets up target detection (viewport, network, input method, accessibility preferences) and the sensory budget system.
+
+```tsx
+// app/layout.tsx (Next.js App Router)
+
+import { KevlarProvider } from '../kevlar';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <KevlarProvider
+          colorBlind={false}          // set true if user has indicated color blindness
+          userSegment="normal"        // 'first_time' | 'normal' | 'power'
+        >
+          {children}
+        </KevlarProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+---
+
+## Your First Button
+
+Every Kevlar component requires you to fill the blanks that survived from the base. For `Button`, the two required props are `onKevlarAction` and `announce`.
+
+```tsx
+import { Button } from '../kevlar';
+
+function AddTodoButton() {
+  return (
+    <Button
+      onKevlarAction={async (ctx) => {
+        const res = await fetch('/api/todos', { method: 'POST', body: JSON.stringify({ text: 'New todo' }) });
+        if (!res.ok) throw new Error('Failed to add todo');
+      }}
+      announce={{
+        loading: 'Adding todo...',
+        success: 'Todo added successfully',
+        error:   'Failed to add todo',
+      }}
+    >
+      Add Todo
+    </Button>
+  );
+}
+```
+
+- `onKevlarAction` is your async action. Kevlar handles the state machine: idle, pressed, loading, success/error.
+- `announce` fills the `STRING_MUST_BE_DEFINED` markers that survived from the base. These are what screen readers announce during each state.
+
+You can override any base decision at the instance level:
+
+```tsx
+<Button
+  onKevlarAction={handleSubmit}
+  announce={{ loading: 'Submitting...', success: 'Submitted!', error: 'Submission failed' }}
+  network={{
+    onOffline: (ctx) => {
+      ctx.setState('disabled');
+      ctx.setText('No internet — try again later');
+    },
+  }}
+  animation={{
+    enter: () => config.animationPresets.slideUp,
+  }}
+>
+  Submit
+</Button>
+```
+
+---
+
+## What Happens When MUST_BE_DEFINED Survives
+
+If you forget to fill a required slot, the component will not render. Instead, it throws with an error that tells you exactly what is missing, which slot it is, and where to fill it:
+
+```
+Kevlar: Button "Add Todo" cannot render.
+
+  states.loading.announcement = STRING_MUST_BE_DEFINED
+  — What should the screen reader announce when this button is loading?
+  — Pass `announce={{ loading: 'Adding todo...' }}` to this Button instance.
+
+  network.onOffline = FUNCTION_MUST_BE_DEFINED
+  — What happens when the user clicks this button with no internet?
+  — Define `network.onOffline` in kevlar/base/BaseInteractive.tsx for all buttons,
+    or in kevlar/components/Button.tsx for all buttons,
+    or pass `network={{ onOffline: (ctx) => { ... } }}` to this instance.
+```
+
+This is intentional. Kevlar will not let you ship a component where you have not decided what happens when the user is offline, or what the screen reader says during loading, or what happens on a TV. Every blank is a question. Every question needs an answer.

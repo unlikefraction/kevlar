@@ -1,0 +1,242 @@
+# Sentinels
+
+Sentinels are marker constants that mean "the developer has not made a decision here yet." Every base component and every component file ships full of them. If any sentinel survives to render time, the component throws in dev mode with an error showing exactly which slot needs filling.
+
+---
+
+## The 6 Constants
+
+```ts
+// @unlikefraction/kevlar/sentinels
+
+export const FUNCTION_MUST_BE_DEFINED: unique symbol;
+export const STRING_MUST_BE_DEFINED:   unique symbol;
+export const NUMBER_MUST_BE_DEFINED:   unique symbol;
+export const OBJECT_MUST_BE_DEFINED:   unique symbol;
+export const BOOLEAN_MUST_BE_DEFINED:  unique symbol;
+export const ANIMATION_MUST_BE_DEFINED: unique symbol;
+```
+
+Each sentinel is a `unique symbol` — it cannot be confused with any other value. TypeScript will catch most accidental uses at compile time, and the runtime catches the rest.
+
+| Sentinel | Used for |
+|----------|----------|
+| `FUNCTION_MUST_BE_DEFINED` | Event handlers, callbacks, action functions |
+| `STRING_MUST_BE_DEFINED` | Screen reader announcements, labels, text content |
+| `NUMBER_MUST_BE_DEFINED` | Timeout durations, debounce values, numeric config |
+| `OBJECT_MUST_BE_DEFINED` | Visual style objects, screenreader config, compound values |
+| `BOOLEAN_MUST_BE_DEFINED` | Feature flags, toggle states, boolean decisions |
+| `ANIMATION_MUST_BE_DEFINED` | Enter/exit animations, state transitions, micro-feedback |
+
+---
+
+## How They Flow
+
+```
+Base component (kevlar/base/BaseInteractive.tsx)
+  └─ 90% MUST_BE_DEFINED markers
+  └─ Tech lead replaces them with project defaults
+         │
+Component file (kevlar/components/Button.tsx)
+  └─ Imports from base
+  └─ Overrides what's Button-specific
+  └─ Some slots still MUST_BE_DEFINED (per-instance decisions)
+         │
+Instance (<Button onKevlarAction={...} announce={...} />)
+  └─ Fills the remaining MUST_BE_DEFINED slots via props
+  └─ If any MUST_BE_DEFINED survives to render → error
+```
+
+### Stage 1: Base (as shipped)
+
+When you first run `npx kevlar init`, the base components are wall-to-wall sentinels:
+
+```tsx
+// kevlar/base/BaseInteractive.tsx (as shipped)
+
+export const baseInteractiveStates = {
+  idle: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,
+  },
+  hover: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,
+  },
+  // ... 6 more states, all MUST_BE_DEFINED
+  loading: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,
+    announcement: STRING_MUST_BE_DEFINED,
+  },
+  // ...
+};
+
+export const baseInteractiveNetwork = {
+  onFast:    FUNCTION_MUST_BE_DEFINED,
+  onSlow:    FUNCTION_MUST_BE_DEFINED,
+  onOffline: FUNCTION_MUST_BE_DEFINED,
+};
+
+export const baseInteractiveAnimation = {
+  enter:            ANIMATION_MUST_BE_DEFINED,
+  exit:             ANIMATION_MUST_BE_DEFINED,
+  transitions: {
+    idle_to_hover:       ANIMATION_MUST_BE_DEFINED,
+    hover_to_idle:       ANIMATION_MUST_BE_DEFINED,
+    idle_to_pressed:     ANIMATION_MUST_BE_DEFINED,
+    pressed_to_loading:  ANIMATION_MUST_BE_DEFINED,
+    loading_to_success:  ANIMATION_MUST_BE_DEFINED,
+    loading_to_error:    ANIMATION_MUST_BE_DEFINED,
+  },
+  microFeedback:    ANIMATION_MUST_BE_DEFINED,
+  loadingAnimation: ANIMATION_MUST_BE_DEFINED,
+};
+```
+
+Every slot is a question. Every question needs an answer.
+
+### Stage 2: After the tech lead fills the base
+
+The tech lead goes through every sentinel and replaces it with a conscious decision:
+
+```tsx
+// kevlar/base/BaseInteractive.tsx (after tech lead)
+
+export const baseInteractiveStates = {
+  idle: {
+    visual: { cursor: 'pointer', opacity: 1 },
+    audio:  (ctx) => {},                     // no sound on idle — conscious decision
+    haptic: (ctx) => {},                     // no haptic on idle — conscious decision
+    screenreader: { role: 'button' },
+  },
+  // ... other states filled ...
+  loading: {
+    visual: { cursor: 'wait', opacity: 0.9 },
+    audio:  (ctx) => {},
+    haptic: (ctx) => {},
+    screenreader: { role: 'button', liveRegion: 'polite', state: { busy: true } },
+    announcement: STRING_MUST_BE_DEFINED,    // STAYS — per instance
+  },
+  success: {
+    // ... filled ...
+    announcement: STRING_MUST_BE_DEFINED,    // STAYS — per instance
+  },
+  error: {
+    // ... filled ...
+    announcement: STRING_MUST_BE_DEFINED,    // STAYS — per instance
+  },
+};
+```
+
+Most sentinels are gone. But `announcement` stays as `STRING_MUST_BE_DEFINED` because the base cannot know what "Loading todo..." or "Order placed successfully" should say. That is a per-instance decision.
+
+### Stage 3: Component file
+
+The component file imports from its base and overrides what is specific. Anything still `MUST_BE_DEFINED` either gets filled here or left for the instance:
+
+```tsx
+// kevlar/components/Button.tsx
+
+const states = { ...baseInteractiveStates };
+// announcements are still STRING_MUST_BE_DEFINED — they stay for the instance
+
+export type KevlarButtonProps = MantineButtonProps & {
+  onKevlarAction: (ctx: KevlarContext) => Promise<void>;
+  announce: { loading: string; success: string; error: string };
+  // ...
+};
+```
+
+### Stage 4: Instance
+
+The developer fills the remaining blanks via props:
+
+```tsx
+<Button
+  onKevlarAction={handleAddTodo}
+  announce={{
+    loading: 'Adding todo...',
+    success: 'Todo added',
+    error:   'Failed to add todo',
+  }}
+>
+  Add Todo
+</Button>
+```
+
+Now every sentinel is resolved. The component renders.
+
+---
+
+## The Error
+
+If any sentinel survives to render, the component refuses to render and throws:
+
+```
+Kevlar: Button "Add Todo" cannot render.
+
+  states.loading.announcement = STRING_MUST_BE_DEFINED
+  — What should the screen reader announce when this button is loading?
+  — Pass `announce={{ loading: 'Adding todo...' }}` to this Button instance.
+
+  network.onOffline = FUNCTION_MUST_BE_DEFINED
+  — What happens when the user clicks this button with no internet?
+  — Define `network.onOffline` in kevlar/base/BaseInteractive.tsx for all buttons,
+    or in kevlar/components/Button.tsx for all buttons,
+    or pass `network={{ onOffline: (ctx) => { ... } }}` to this instance.
+```
+
+The error tells you:
+
+1. **Which component** and which instance (by children text or aria-label)
+2. **Which slot** is unfilled (full dot-path like `states.loading.announcement`)
+3. **What the slot means** (a human-readable question)
+4. **Where to fill it** (base file, component file, or instance prop)
+
+---
+
+## Sentinel vs Empty Function
+
+A sentinel and an empty function are fundamentally different:
+
+```tsx
+// This is a SENTINEL — it means "no one has decided yet"
+onRageClick: FUNCTION_MUST_BE_DEFINED,
+
+// This is a DECISION — it means "do nothing, and I thought about it"
+onRageClick: (ctx) => {},
+```
+
+`FUNCTION_MUST_BE_DEFINED` will cause an error at render time. `(ctx) => {}` will not — it is a valid, conscious choice to do nothing.
+
+The distinction matters. When the tech lead sees `FUNCTION_MUST_BE_DEFINED` on `onRageClick`, they must stop and think: what should happen when a user rage-clicks this element? Maybe nothing. Maybe show a message. Maybe disable the button temporarily. The sentinel forces the question. The empty function is one valid answer.
+
+The same applies to all sentinel types:
+
+```tsx
+// Sentinel — no decision made
+audio: FUNCTION_MUST_BE_DEFINED,
+
+// Decision — consciously chose silence
+audio: (ctx) => {},
+
+// Decision — consciously chose a click sound
+audio: (ctx) => { playSound(config.sounds.click); },
+```
+
+```tsx
+// Sentinel — no decision made
+announcement: STRING_MUST_BE_DEFINED,
+
+// Decision — this state has a specific announcement
+announcement: 'Adding todo...',
+```
+
+There is no way to accidentally ship a component where someone forgot to think about a state, a target, or a modality. The sentinel either gets replaced with a decision, or the component does not render.

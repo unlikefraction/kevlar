@@ -1,0 +1,126 @@
+# Shame Props
+
+Shame props are deliberately ugly-named boolean props that let you skip a required accessibility or safety check. They exist so the skip is **visible in code review** -- no one can silently bypass a requirement.
+
+Every shame prop triggers a `console.warn` in development mode with a link to the relevant WCAG guideline.
+
+---
+
+## Why they exist
+
+Sometimes you genuinely need to skip a check. A decorative image does not need alt text. A confirmation dialog might not need a visible title. These are valid cases.
+
+But Kevlar refuses to let you skip silently. If you skip, the prop name screams it:
+
+```tsx
+{/* This will show up in every PR diff */}
+<Image
+  src="/decorative-swoosh.svg"
+  badly_skip_alt_text_and_hurt_accessibility
+/>
+```
+
+Reviewers see it. Future developers see it. The decision is documented in code, not buried in a comment.
+
+---
+
+## All 9 shame props
+
+| Shame prop | What it skips | Component(s) |
+|---|---|---|
+| `badly_skip_alt_text_and_hurt_accessibility` | Image/Avatar `alt` text requirement | Image, Avatar |
+| `badly_allow_layout_shift_and_dont_define_size` | Image `width`+`height` or `aspectRatio` requirement (prevents CLS) | Image |
+| `badly_skip_modal_title_and_hurt_accessibility` | Modal/Drawer `title` for screen readers | Modal, Drawer |
+| `badly_skip_aria_label_and_hurt_accessibility` | ActionIcon `aria-label` (icon-only buttons are invisible to screen readers) | ActionIcon |
+| `badly_skip_input_label_and_hurt_accessibility` | Input `label` for screen readers | All input components |
+| `dangerously_skip_offline_decision` | Network `onOffline` slot (what happens when the user is offline) | All interactive/input components |
+| `dangerously_skip_timeout_decision` | Timing `timeoutMs` and `onTimeout` slots (what happens when an async action takes too long) | All interactive components |
+| `dangerously_skip_focus_trap` | Modal/Drawer focus trap (`Tab.trap` and `trapFocus`) | Modal, Drawer |
+| `dangerously_allow_submit_type_button` | Button `type="submit"` override (Kevlar defaults to `type="button"` to prevent accidental form submissions) | Button |
+
+---
+
+## Naming convention
+
+- **`badly_*`** -- Accessibility violation. You are making the experience worse for users with disabilities.
+- **`dangerously_*`** -- Safety/UX violation. You are removing a guard that prevents broken experiences.
+
+Both prefixes use `snake_case` to make them visually distinct from normal camelCase props.
+
+---
+
+## Dev mode warnings
+
+In development, using any shame prop logs a warning to the console:
+
+```
+Kevlar: ActionIcon is using `badly_skip_aria_label_and_hurt_accessibility`.
+This skips the aria-label requirement for icon-only buttons.
+Screen reader users will not know what this button does.
+See: https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html
+```
+
+These warnings are stripped in production builds.
+
+---
+
+## Usage examples
+
+### Decorative image (no alt text needed)
+
+```tsx
+<Image
+  src="/hero-pattern.svg"
+  alt=""
+  badly_skip_alt_text_and_hurt_accessibility
+  width={1200}
+  height={400}
+/>
+```
+
+Even for decorative images, prefer passing `alt=""` (empty string) rather than omitting it entirely. The shame prop suppresses the error, but empty alt is the correct semantic choice.
+
+### ActionIcon with visible adjacent label
+
+```tsx
+<Group>
+  <ActionIcon
+    onKevlarAction={handleDelete}
+    announce={{ loading: 'Deleting...', success: 'Deleted', error: 'Delete failed' }}
+    badly_skip_aria_label_and_hurt_accessibility
+  >
+    <TrashIcon />
+  </ActionIcon>
+  <Text>Delete item</Text>
+</Group>
+```
+
+### Modal without visible title
+
+```tsx
+<Modal
+  opened={opened}
+  onClose={close}
+  announce={{ open: 'Confirmation dialog opened' }}
+  badly_skip_modal_title_and_hurt_accessibility
+  aria-label="Confirm deletion"
+>
+  <Text>Are you sure you want to delete this?</Text>
+</Modal>
+```
+
+Even when skipping the visible title, provide `aria-label` so screen readers still have context.
+
+### Skipping focus trap in a non-modal dialog
+
+```tsx
+<Modal
+  opened={opened}
+  onClose={close}
+  title="Quick preview"
+  announce={{ open: 'Preview opened' }}
+  dangerously_skip_focus_trap
+>
+  {/* User can still interact with content behind this overlay */}
+</Modal>
+```

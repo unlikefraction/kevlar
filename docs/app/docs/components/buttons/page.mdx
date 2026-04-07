@@ -1,0 +1,190 @@
+# Buttons
+
+All button components inherit from **BaseInteractive**. They share the same 8 states (idle, hover, focused, pressed, loading, success, error, disabled) and the full action flow managed by `useKevlarInteraction`.
+
+---
+
+### Button
+
+**Base:** BaseInteractive
+
+**States:** idle, hover, focused, pressed, loading, success, error, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- async action handler (required)
+- `announce.loading` / `announce.success` / `announce.error` -- screen reader announcements (required)
+- All base interactive states, actions, input, network, timing, animation
+
+**Key behavior:** `type` defaults to `"button"` (not `"submit"`) to prevent accidental form submissions. Use `dangerously_allow_submit_type_button` to override.
+
+```tsx
+import { Button } from './kevlar';
+
+<Button
+  onKevlarAction={async (ctx) => {
+    const res = await fetch('/api/submit', { signal: ctx.signal });
+    if (!res.ok) throw new Error('Failed');
+  }}
+  announce={{
+    loading: 'Submitting...',
+    success: 'Submitted successfully',
+    error: 'Submission failed',
+  }}
+>
+  Submit
+</Button>
+```
+
+---
+
+### ActionIcon
+
+**Base:** BaseInteractive
+
+**States:** idle, hover, focused, pressed, loading, success, error, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- async action handler (required)
+- `announce.loading` / `announce.success` / `announce.error` (required)
+- `aria-label` -- required (icon-only buttons are invisible to screen readers)
+
+**Key behavior:** Loading state replaces the icon with a centered spinner. Throws if `aria-label` is missing unless `badly_skip_aria_label_and_hurt_accessibility` is set.
+
+```tsx
+import { ActionIcon } from './kevlar';
+
+<ActionIcon
+  aria-label="Delete item"
+  onKevlarAction={async (ctx) => {
+    await fetch('/api/delete', { method: 'DELETE', signal: ctx.signal });
+  }}
+  announce={{
+    loading: 'Deleting...',
+    success: 'Deleted',
+    error: 'Delete failed',
+  }}
+>
+  <TrashIcon />
+</ActionIcon>
+```
+
+---
+
+### CloseButton
+
+**Base:** BaseInteractive
+
+**States:** idle, hover, focused, pressed, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- close handler (required)
+- `aria-label` -- defaults to `"Close"` but can be overridden
+
+**Key behavior:** Simplified interactive -- no loading/success/error states since close is a synchronous action. Pre-fills `aria-label="Close"`.
+
+```tsx
+import { CloseButton } from './kevlar';
+
+<CloseButton
+  onKevlarAction={async () => { closeModal(); }}
+  announce={{ loading: 'Closing...', success: 'Closed', error: 'Close failed' }}
+/>
+```
+
+---
+
+### CopyButton
+
+**Base:** BaseInteractive
+
+**States:** idle, hover, focused, pressed, loading, success, error, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- copy-to-clipboard handler (required)
+- `announce.loading` / `announce.success` / `announce.error` (required)
+- `value` -- the text to copy (required)
+
+**Key behavior:** Success state shows a brief confirmation (checkmark or "Copied!"). Automatically resets to idle after a configurable timeout.
+
+```tsx
+import { CopyButton } from './kevlar';
+
+<CopyButton
+  value="npm install @unlikefraction/kevlar"
+  onKevlarAction={async (ctx) => {
+    await navigator.clipboard.writeText('npm install @unlikefraction/kevlar');
+  }}
+  announce={{
+    loading: 'Copying...',
+    success: 'Copied to clipboard',
+    error: 'Copy failed',
+  }}
+>
+  {(copied) => copied ? 'Copied!' : 'Copy'}
+</CopyButton>
+```
+
+---
+
+### FileButton
+
+**Base:** BaseInteractive
+
+**States:** idle, hover, focused, pressed, loading, success, error, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- file selection handler (required)
+- `announce.loading` / `announce.success` / `announce.error` (required)
+- `accept` -- file type filter
+- `multiple` -- allow multiple files
+
+**Key behavior:** Wraps a hidden file input. The action flow triggers after the user selects files from the OS dialog.
+
+```tsx
+import { FileButton } from './kevlar';
+
+<FileButton
+  accept="image/png,image/jpeg"
+  onKevlarAction={async (ctx) => {
+    // ctx.files contains the selected files
+    await uploadFiles(ctx.files);
+  }}
+  announce={{
+    loading: 'Uploading files...',
+    success: 'Files uploaded',
+    error: 'Upload failed',
+  }}
+>
+  Upload Image
+</FileButton>
+```
+
+---
+
+### UnstyledButton
+
+**Base:** BaseInteractive
+
+**States:** idle, hover, focused, pressed, loading, success, error, disabled
+
+**Dev-fill slots:**
+- `onKevlarAction` -- async action handler (required)
+- `announce.loading` / `announce.success` / `announce.error` (required)
+
+**Key behavior:** No default styling. Renders a plain `button` element with all Kevlar interaction handling. Use when you need full control over the visual output.
+
+```tsx
+import { UnstyledButton } from './kevlar';
+
+<UnstyledButton
+  onKevlarAction={async () => { await doSomething(); }}
+  announce={{
+    loading: 'Processing...',
+    success: 'Done',
+    error: 'Failed',
+  }}
+  style={{ padding: '8px 16px', borderRadius: 4 }}
+>
+  Custom styled button
+</UnstyledButton>
+```

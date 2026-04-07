@@ -1,0 +1,310 @@
+# Design Config
+
+One file. `kevlar/design.config.ts`. Every component file imports from it. It is the project's design language across all sensory channels — visual, audio, haptic, motion, and timing.
+
+Change a sound file path here, every component that uses that sound changes. Change the focus ring width here, every component's focus ring changes. Change the breakpoint for "mobile" here, every `isMobile()` call recalibrates.
+
+```ts
+// kevlar/design.config.ts
+
+import { defineDesignConfig } from '@unlikefraction/kevlar/runtime';
+
+export default defineDesignConfig({
+
+  // ─── COLORS ──────────────────────────────────────────────────
+  // Semantic tokens. Resolve through Mantine theme at runtime.
+  // Every component references these by name, never by hex.
+  colors: {
+    focus:          'theme.primaryColor',
+    success:        'theme.colors.green.6',
+    error:          'theme.colors.red.6',
+    warning:        'theme.colors.yellow.6',
+    info:           'theme.colors.blue.6',
+    border: {
+      default:      'theme.colors.gray.3',
+      strong:       'theme.colors.gray.7',
+    },
+    text: {
+      primary:      'theme.colors.dark.9',
+      muted:        'theme.colors.gray.6',
+      disabled:     'theme.colors.gray.4',
+    },
+    bg: {
+      disabled:     'theme.colors.gray.1',
+    },
+  },
+
+  // ─── TYPOGRAPHY ──────────────────────────────────────────────
+  typography: {
+    fontFamily: {
+      body:     'theme.fontFamily',
+      mono:     'theme.fontFamilyMonospace',
+    },
+    fontSize: {
+      xs: 12, sm: 14, md: 16, lg: 18, xl: 20,
+    },
+    fontWeight: {
+      normal: 400, medium: 500, semibold: 600, bold: 700,
+    },
+    lineHeight: {
+      tight: 1.25, normal: 1.5, relaxed: 1.75,
+    },
+    // Mobile inputs must be 16px to prevent iOS auto-zoom.
+    // Any input with a font size below 16px triggers Safari's
+    // zoom-on-focus behavior. This token enforces the floor.
+    mobileInputFontSize: 16,
+  },
+
+  // ─── SPACING ─────────────────────────────────────────────────
+  spacing: {
+    0: 0, xs: 4, sm: 8, md: 16, lg: 24, xl: 32,
+  },
+
+  // ─── BORDER RADIUS ───────────────────────────────────────────
+  radius: {
+    none: 0, xs: 2, sm: 4, md: 8, lg: 16, xl: 32, full: 9999,
+  },
+
+  // ─── SHADOWS ─────────────────────────────────────────────────
+  shadows: {
+    none: 'none',
+    low:  '0 1px 2px rgba(0,0,0,0.05)',
+    mid:  '0 4px 6px rgba(0,0,0,0.07)',
+    high: '0 10px 15px rgba(0,0,0,0.1)',
+  },
+
+  // ─── SOUNDS ──────────────────────────────────────────────────
+  // The sound palette. playSound('click') looks up 'click' here.
+  // Set any entry to null to disable that sound project-wide.
+  // Value can be: URL string, AudioBuffer, or () => void callback.
+  sounds: {
+    click:    '/sounds/click.mp3',
+    success:  '/sounds/success.mp3',
+    error:    '/sounds/error.mp3',
+    warning:  '/sounds/warning.mp3',
+    open:     '/sounds/open.mp3',
+    close:    '/sounds/close.mp3',
+  },
+
+  // ─── HAPTICS ─────────────────────────────────────────────────
+  // The haptic palette. fireHaptic('tap') looks up 'tap' here.
+  // Values are vibration patterns: [duration, gap, duration, ...] in ms.
+  // Set any entry to null to disable that haptic project-wide.
+  haptics: {
+    tap:      [10],
+    success:  [10, 30, 10],
+    error:    [10, 10, 10, 10, 10],
+    warning:  [40],
+  },
+
+  // ─── ANIMATION ───────────────────────────────────────────────
+
+  // Duration tokens (in ms). Referenced as 'fast', 'normal', etc.
+  duration: {
+    instant: 0,
+    fast:    100,
+    normal:  200,
+    slow:    350,
+    glacial: 500,
+  },
+
+  // Easing curves. Referenced by name in animation configs.
+  easing: {
+    default:  'cubic-bezier(0.4, 0.0, 0.2, 1)',
+    in:       'cubic-bezier(0.4, 0.0, 1, 1)',
+    out:      'cubic-bezier(0.0, 0.0, 0.2, 1)',
+    inOut:    'cubic-bezier(0.4, 0.0, 0.2, 1)',
+    spring:   'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    linear:   'cubic-bezier(0, 0, 1, 1)',
+  },
+
+  // Named animation presets. Components reference these by name
+  // or define inline configs using the duration/easing tokens above.
+  animationPresets: {
+    fadeIn:      { type: 'fade', duration: 'fast', easing: 'out' },
+    fadeOut:     { type: 'fade', duration: 'fast', easing: 'in' },
+    scalePress:  { type: 'scale', duration: 'instant' },
+    springHover: { type: 'spring', duration: 'fast', easing: 'spring' },
+    shake:       { type: 'shake', duration: 'normal' },
+    slideUp:     { type: 'slide', direction: 'up', duration: 'normal', easing: 'out' },
+    slideDown:   { type: 'slide', direction: 'down', duration: 'normal', easing: 'in' },
+    slideLeft:   { type: 'slide', direction: 'left', duration: 'normal', easing: 'out' },
+    slideRight:  { type: 'slide', direction: 'right', duration: 'normal', easing: 'out' },
+    shimmer:     { type: 'shimmer', duration: 1500, easing: 'linear', loop: true },
+    spin:        { type: 'spin', duration: 'slow', easing: 'linear', loop: true },
+    none:        { type: 'none' },
+    instant:     { type: 'none', duration: 'instant' },
+  },
+
+  // ─── SENSORY BUDGET ──────────────────────────────────────────
+  // Rate limits to prevent sensory overload from rapid-fire interactions.
+  sensoryBudget: {
+    haptic:       { maxFires: 3, windowMs: 500 },   // at most 3 haptics per 500ms
+    audio:        { maxFires: 1, windowMs: 200 },   // at most 1 sound per 200ms
+    announcement: { maxFires: 1, windowMs: 300, queue: true },  // announcements queue, never drop
+  },
+
+  // ─── FOCUS RING ──────────────────────────────────────────────
+  // The default focus ring. Components import and use this.
+  focusRing: {
+    width:  3,
+    color:  'focus',       // references colors.focus above
+    offset: 2,
+    style:  'solid',
+  },
+
+  // ─── TOUCH TARGETS ───────────────────────────────────────────
+  // Minimum interactive touch sizes per platform (in px).
+  touchTargets: {
+    small_mobile: { width: 48, height: 48 },
+    mobile:       { width: 48, height: 48 },
+    tablet:       { width: 44, height: 44 },
+    desktop:      { width: 44, height: 44 },
+    widescreen:   { width: 44, height: 44 },
+    tv:           { width: 44, height: 44 },
+  },
+
+  // ─── BREAKPOINTS ─────────────────────────────────────────────
+  // Viewport pixel values that define each platform.
+  // isMobile() checks against these. Change here, changes everywhere.
+  breakpoints: {
+    small_mobile: { max: 359 },
+    mobile:       { min: 360, max: 767 },
+    tablet:       { min: 768, max: 1023 },
+    desktop:      { min: 1024, max: 1439 },
+    widescreen:   { min: 1440, max: 1919 },
+    tv:           { min: 1920 },
+  },
+
+  // ─── Z-INDEX ─────────────────────────────────────────────────
+  // Layer ordering so overlays don't fight each other.
+  zIndex: {
+    dropdown:       100,
+    sticky:         200,
+    overlay:        300,
+    modal:          400,
+    popover:        500,
+    tooltip:        600,
+    notification:   700,
+    floatingWindow: 800,
+  },
+
+  // ─── TIMING DEFAULTS ────────────────────────────────────────
+  // Starting values for timing-related slots. Components can override.
+  timing: {
+    defaultTimeoutMs:      15000,   // 15s before an action times out
+    defaultDebounceMs:     300,     // 300ms debounce on inputs
+    autoDismissMs:         5000,    // 5s before notifications auto-dismiss
+    hoverOpenDelayMs:      200,     // 200ms before hover cards open
+    hoverCloseDelayMs:     300,     // 300ms before hover cards close
+    successRevertMs:       2000,    // 2s before CopyButton reverts to idle
+  },
+
+  // ─── TV ──────────────────────────────────────────────────────
+  // TV-specific design tokens (10-foot UI).
+  tv: {
+    focusRing: { width: 8, color: 'focus', offset: 4, style: 'solid', glow: true },
+    focusScale: 1.05,
+  },
+
+});
+```
+
+---
+
+## Section Reference
+
+### Colors
+
+Semantic tokens that resolve through Mantine theme at runtime. Components reference `config.colors.focus` or `config.colors.text.muted`, never raw hex values. This means your Kevlar components automatically respond to Mantine theme changes (including dark mode).
+
+### Typography
+
+Font family references, size scale, weight scale, and line height scale. The `mobileInputFontSize` token (default 16) prevents Safari on iOS from auto-zooming when a user focuses an input with a font size below 16px.
+
+### Spacing, Radius, Shadows
+
+Standard design token scales. Referenced as `config.spacing.md`, `config.radius.lg`, `config.shadows.high` throughout component files.
+
+### Sounds
+
+The sound palette. Each key maps to a URL string, an `AudioBuffer`, or a `() => void` callback. Set any entry to `null` to disable that sound project-wide. Components call `playSound(config.sounds.click)` and the runtime handles playback, respecting the sensory budget and `isSilentMode()`.
+
+### Haptics
+
+Vibration patterns as arrays of millisecond durations: `[vibrate, pause, vibrate, ...]`. Set any entry to `null` to disable. Components call `fireHaptic(config.haptics.tap)` and the runtime handles execution, respecting the sensory budget and `isLowBattery()`.
+
+### Animation
+
+Three layers:
+
+1. **Duration tokens** — named durations in milliseconds (`instant: 0`, `fast: 100`, `normal: 200`, `slow: 350`, `glacial: 500`)
+2. **Easing curves** — named cubic-bezier curves (`default`, `in`, `out`, `inOut`, `spring`, `linear`)
+3. **Animation presets** — named combinations of type, duration, and easing that components reference directly
+
+The presets cover common patterns:
+
+| Preset | Type | Duration | Easing | Notes |
+|--------|------|----------|--------|-------|
+| `fadeIn` | fade | fast | out | Standard enter |
+| `fadeOut` | fade | fast | in | Standard exit |
+| `scalePress` | scale | instant | — | Press feedback |
+| `springHover` | spring | fast | spring | Hover bounce |
+| `shake` | shake | normal | — | Error feedback |
+| `slideUp` | slide | normal | out | Content enter |
+| `shimmer` | shimmer | 1500ms | linear | Loading skeleton, loops |
+| `spin` | spin | slow | linear | Loading spinner, loops |
+| `none` | none | — | — | No animation |
+| `instant` | none | instant | — | Immediate transition |
+
+### Sensory Budget
+
+Rate limits that prevent sensory overload. When a user rage-clicks, you do not want 15 haptic buzzes and 15 click sounds in one second.
+
+- **Haptic**: at most 3 fires per 500ms window
+- **Audio**: at most 1 fire per 200ms window
+- **Announcement**: at most 1 per 300ms window, but announcements are **queued** rather than dropped — screen reader users never miss information
+
+### Focus Ring
+
+Default focus ring appearance applied to every interactive component. Width in pixels, color referencing `colors.focus`, offset from the element edge, and border style. Components use `config.focusRing` directly and can adjust per-target (wider for `isTV()`, thicker for `prefersHighContrast()`).
+
+### Touch Targets
+
+Minimum interactive sizes per platform in pixels. Mobile devices get 48x48px (per WCAG and platform guidelines). Desktop and above get 44x44px for touch-enabled screens. Components call `config.touchTargets[getPlatform()]` to get the right size.
+
+### Breakpoints
+
+Viewport ranges that define each platform target:
+
+| Platform | Range |
+|----------|-------|
+| `small_mobile` | at most 359px |
+| `mobile` | 360px to 767px |
+| `tablet` | 768px to 1023px |
+| `desktop` | 1024px to 1439px |
+| `widescreen` | 1440px to 1919px |
+| `tv` | 1920px and above |
+
+When you call `isMobile()`, it checks against `breakpoints.mobile`. Change the range here, the target recalibrates everywhere.
+
+### Z-Index
+
+Layer ordering so overlays stack correctly. Values increase from `dropdown` (100) through `floatingWindow` (800). Components use `config.zIndex.modal` instead of magic numbers.
+
+### Timing Defaults
+
+Starting values for timing-related behavior. Every component can override these, but these are the project-wide defaults:
+
+| Token | Default | Used for |
+|-------|---------|----------|
+| `defaultTimeoutMs` | 15000 | Action timeout before error state |
+| `defaultDebounceMs` | 300 | Input debounce |
+| `autoDismissMs` | 5000 | Notification auto-dismiss |
+| `hoverOpenDelayMs` | 200 | Tooltip/hover card open delay |
+| `hoverCloseDelayMs` | 300 | Hover card close delay |
+| `successRevertMs` | 2000 | CopyButton success to idle revert |
+
+### TV Tokens
+
+10-foot UI overrides. The TV focus ring is wider (8px), has a glow effect, and elements scale up by 1.05x on focus. Components check `isTV()` and use `config.tv.focusRing` and `config.tv.focusScale` inline.

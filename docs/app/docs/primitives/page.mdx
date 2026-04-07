@@ -1,0 +1,196 @@
+# Primitives API
+
+Primitives are the detection and action functions that Kevlar components use to adapt to the user's environment. Every primitive comes in two versions:
+
+- **Hook version** (e.g. `useIsMobile()`) -- for use inside React components
+- **Plain function version** (e.g. `isMobile()`) -- for use inside spec objects and config files
+
+Both read from the same source: the state detected by `KevlarProvider`.
+
+```ts
+import {
+  // Hook versions (React components)
+  useIsMobile, useIsFast, usePrefersReducedMotion,
+  // Plain function versions (spec objects)
+  isMobile, isFast, prefersReducedMotion,
+  // Action primitives
+  playSound, fireHaptic, announce, moveFocus,
+} from '@unlikefraction/kevlar/primitives';
+```
+
+---
+
+## Target Primitives
+
+### Platform (6 + 1 getter)
+
+Detect the current viewport/platform based on the breakpoints defined in your design config.
+
+| Hook | Plain function | Returns `true` when |
+|------|---------------|---------------------|
+| `useIsSmallMobile()` | `isSmallMobile()` | Width is at most `breakpoints.small_mobile.max` |
+| `useIsMobile()` | `isMobile()` | Platform is `mobile` or `small_mobile` |
+| `useIsTablet()` | `isTablet()` | Platform is `tablet` |
+| `useIsDesktop()` | `isDesktop()` | Platform is `desktop` |
+| `useIsWidescreen()` | `isWidescreen()` | Platform is `widescreen` |
+| `useIsTV()` | `isTV()` | Platform is `tv` |
+| `useGetPlatform()` | `getPlatform()` | Returns the platform string directly |
+
+```tsx
+// In a React component
+function MyComponent() {
+  const mobile = useIsMobile();
+  return <div style={{ padding: mobile ? 8 : 24 }}>...</div>;
+}
+
+// In a spec object
+const states = {
+  idle: {
+    visual: () => ({
+      padding: isMobile() ? 8 : 24,
+    }),
+  },
+};
+```
+
+### Network (3 + 1 getter)
+
+Detect the current network condition using `navigator.onLine` and the Network Information API.
+
+| Hook | Plain function | Returns `true` when |
+|------|---------------|---------------------|
+| `useIsFast()` | `isFast()` | Network is online and not slow |
+| `useIsSlow()` | `isSlow()` | `effectiveType` is `slow-2g` or `2g` |
+| `useIsOffline()` | `isOffline()` | `navigator.onLine` is `false` |
+| `useGetNetworkState()` | `getNetworkState()` | Returns `'fast'`, `'slow'`, or `'offline'` |
+
+### Accessibility (4)
+
+Detect user accessibility preferences and settings.
+
+| Hook | Plain function | What it detects |
+|------|---------------|-----------------|
+| `usePrefersReducedMotion()` | `prefersReducedMotion()` | `prefers-reduced-motion: reduce` media query |
+| `usePrefersHighContrast()` | `prefersHighContrast()` | `prefers-contrast: more` or `forced-colors: active` |
+| `useIsKeyboardOnly()` | `isKeyboardOnly()` | User is navigating with Tab/Arrow keys (resets on mouse/touch) |
+| `useIsColorBlind()` | `isColorBlind()` | `colorBlind` prop passed to `KevlarProvider` |
+
+### Input Method (3)
+
+Detect how the user is currently interacting with the page.
+
+| Hook | Plain function | Returns `true` when |
+|------|---------------|---------------------|
+| `useIsTouchDevice()` | `isTouchDevice()` | Last input was a touch event |
+| `useIsMouseDevice()` | `isMouseDevice()` | Last input was a mouse event |
+| `useIsDpadDevice()` | `isDpadDevice()` | Platform is TV or last input was d-pad navigation |
+
+### System (1)
+
+| Hook | Plain function | What it detects |
+|------|---------------|-----------------|
+| `useIsSilentMode()` | `isSilentMode()` | AudioContext is suspended (device is on silent/muted) |
+
+### Special (2)
+
+| Hook | Plain function | What it detects |
+|------|---------------|-----------------|
+| `useIsLowBattery()` | `isLowBattery()` | Battery level is below 15% (Battery API) |
+| `useGetUserSegment()` | `getUserSegment()` | Returns `'first_time'`, `'normal'`, or `'power'` |
+
+---
+
+## Action Primitives
+
+Action primitives perform side effects (sound, haptics, screen reader announcements, focus movement). They respect system state and sensory budgets automatically.
+
+### playSound
+
+```ts
+function playSound(
+  source: string | AudioBuffer | (() => void) | null
+): void;
+```
+
+Plays a sound effect. Accepts a URL string, an `AudioBuffer`, a callback function, or `null` (no-op).
+
+**Automatic guards:**
+- Skipped when the device is in silent mode (`isSilentMode()`)
+- Skipped when the audio sensory budget is exceeded (`sensoryBudget.audio.maxFires` within `windowMs`)
+
+```ts
+// URL
+playSound('/sounds/click.mp3');
+
+// AudioBuffer (pre-decoded)
+playSound(myDecodedBuffer);
+
+// Callback (custom audio logic)
+playSound(() => myAudioEngine.play('success'));
+
+// Explicit no-op
+playSound(null);
+```
+
+### fireHaptic
+
+```ts
+function fireHaptic(pattern: number[] | null): void;
+```
+
+Triggers haptic feedback using the Vibration API. The `pattern` array follows the `navigator.vibrate()` format: alternating vibrate/pause durations in milliseconds.
+
+**Automatic guards:**
+- Skipped when battery is low (`isLowBattery()`)
+- Skipped when the haptic sensory budget is exceeded
+
+```ts
+// Short tap
+fireHaptic([10]);
+
+// Double pulse
+fireHaptic([10, 50, 10]);
+
+// Explicit no-op
+fireHaptic(null);
+```
+
+### announce
+
+```ts
+function announce(message: string): void;
+```
+
+Sends a message to an ARIA live region for screen readers. Creates a visually hidden `div` with `role="status"` and `aria-live="polite"` if one does not exist.
+
+**Automatic guards:**
+- When the announcement sensory budget is exceeded, messages are queued and delivered after the budget window resets (if `sensoryBudget.announcement.queue` is `true`)
+
+```ts
+announce('Item added to cart');
+announce('Form submitted successfully');
+announce('Error: please check the email field');
+```
+
+### moveFocus
+
+```ts
+function moveFocus(direction: 'next' | 'prev' | 'up' | 'down'): void;
+```
+
+Moves keyboard focus to the next or previous focusable element in the DOM. Queries all focusable elements (`a[href]`, `button:not([disabled])`, `input:not([disabled])`, etc.) and moves focus based on the current position.
+
+| Direction | Behavior |
+|-----------|----------|
+| `'next'`, `'right'`, `'down'` | Focus the next focusable element (wraps around) |
+| `'prev'`, `'left'`, `'up'` | Focus the previous focusable element (wraps around) |
+
+```ts
+// In a keyboard handler
+keyboard: {
+  bindings: {
+    ArrowDown: () => moveFocus('next'),
+    ArrowUp: () => moveFocus('prev'),
+  }
+}
+```

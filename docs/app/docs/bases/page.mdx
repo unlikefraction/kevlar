@@ -1,0 +1,595 @@
+# Base Components
+
+Kevlar has 9 base components. Every one of the 108 component files inherits from exactly one base. The base defines the scaffold — states, modalities, actions, input methods, network handling, timing, animation. The tech lead fills in the project defaults. The component file overrides what is specific. The instance fills what is left.
+
+All 9 bases follow the same pattern: they ship full of `MUST_BE_DEFINED` sentinels. The tech lead replaces every one.
+
+---
+
+## BaseInteractive
+
+**Used by:** Button, ActionIcon, CloseButton, CopyButton, FileButton, UnstyledButton, Chip, Switch, Checkbox, Radio, SegmentedControl, and more.
+
+The most complex base. Covers any element a user clicks, taps, or activates.
+
+### States (8)
+
+Each state has 4 modalities: `visual`, `audio`, `haptic`, `screenreader`.
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Default resting state |
+| `hover` | Mouse/pointer hovering over the element |
+| `focused` | Element has keyboard or programmatic focus |
+| `pressed` | Element is being pressed/clicked/tapped |
+| `loading` | Async action is in progress |
+| `success` | Async action succeeded |
+| `error` | Async action failed |
+| `disabled` | Element is not interactive |
+
+The `loading`, `success`, and `error` states also have an `announcement` slot (`STRING_MUST_BE_DEFINED`) for screen reader announcements. These always survive to the instance because the base cannot know what "Loading..." means in context.
+
+### States (as shipped)
+
+```tsx
+export const baseInteractiveStates = {
+  idle: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,   // { role: 'button' } at minimum
+  },
+  hover: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,
+  },
+  focused: {
+    visual:       OBJECT_MUST_BE_DEFINED,   // must include a focus ring
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,
+  },
+  pressed: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,  // click sound?
+    haptic:       FUNCTION_MUST_BE_DEFINED,  // tap haptic?
+    screenreader: OBJECT_MUST_BE_DEFINED,
+  },
+  loading: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,   // must include liveRegion + busy
+    announcement: STRING_MUST_BE_DEFINED,   // per instance
+  },
+  success: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,  // success chime?
+    haptic:       FUNCTION_MUST_BE_DEFINED,  // success haptic?
+    screenreader: OBJECT_MUST_BE_DEFINED,
+    announcement: STRING_MUST_BE_DEFINED,   // per instance
+  },
+  error: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,  // error sound?
+    haptic:       FUNCTION_MUST_BE_DEFINED,  // error haptic?
+    screenreader: OBJECT_MUST_BE_DEFINED,   // must include liveRegion assertive
+    announcement: STRING_MUST_BE_DEFINED,   // per instance
+  },
+  disabled: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        FUNCTION_MUST_BE_DEFINED,
+    haptic:       FUNCTION_MUST_BE_DEFINED,
+    screenreader: OBJECT_MUST_BE_DEFINED,   // must include disabled state
+  },
+};
+```
+
+### Actions
+
+```tsx
+export const baseInteractiveActions = {
+  onRageClick:          FUNCTION_MUST_BE_DEFINED,
+  onDoubleClick:        FUNCTION_MUST_BE_DEFINED,
+  onClickDuringLoading: FUNCTION_MUST_BE_DEFINED,
+  onFocusEscape:        FUNCTION_MUST_BE_DEFINED,
+};
+```
+
+| Action | Question the tech lead must answer |
+|--------|-----------------------------------|
+| `onRageClick` | What happens when the user clicks rapidly and repeatedly? |
+| `onDoubleClick` | What happens on double click? |
+| `onClickDuringLoading` | What happens if they click while an async action is in progress? |
+| `onFocusEscape` | What happens if they tab away during an async operation? |
+
+### Input Methods
+
+Four input method blocks, all `MUST_BE_DEFINED`:
+
+```tsx
+export const baseInteractiveInput = {
+  touch: {
+    onTap:       FUNCTION_MUST_BE_DEFINED,
+    onDoubleTap: FUNCTION_MUST_BE_DEFINED,
+    onLongPress: FUNCTION_MUST_BE_DEFINED,
+    onSwipe:     FUNCTION_MUST_BE_DEFINED,
+    onPinch:     FUNCTION_MUST_BE_DEFINED,
+    touchTargetSize: FUNCTION_MUST_BE_DEFINED,
+    instantFeedback: BOOLEAN_MUST_BE_DEFINED,
+  },
+  mouse: {
+    onLeftClick:   FUNCTION_MUST_BE_DEFINED,
+    onRightClick:  FUNCTION_MUST_BE_DEFINED,
+    onMiddleClick: FUNCTION_MUST_BE_DEFINED,
+    onDoubleClick: FUNCTION_MUST_BE_DEFINED,
+    onHoverEnter:  FUNCTION_MUST_BE_DEFINED,
+    onHoverLeave:  FUNCTION_MUST_BE_DEFINED,
+    onScroll:      FUNCTION_MUST_BE_DEFINED,
+    onDragAndDrop: FUNCTION_MUST_BE_DEFINED,
+  },
+  keyboard: {
+    bindings: {
+      Enter:  FUNCTION_MUST_BE_DEFINED,
+      Space:  FUNCTION_MUST_BE_DEFINED,
+      Escape: FUNCTION_MUST_BE_DEFINED,
+    },
+    Tab:      OBJECT_MUST_BE_DEFINED,       // { trap: boolean }
+    focusRing: FUNCTION_MUST_BE_DEFINED,
+  },
+  remote_dpad: {
+    onSelect:      FUNCTION_MUST_BE_DEFINED,
+    onBack:        FUNCTION_MUST_BE_DEFINED,
+    onDirectional: FUNCTION_MUST_BE_DEFINED,
+    focusRing:     OBJECT_MUST_BE_DEFINED,  // use config.tv.focusRing
+  },
+};
+```
+
+### Network
+
+```tsx
+export const baseInteractiveNetwork = {
+  onFast:    FUNCTION_MUST_BE_DEFINED,
+  onSlow:    FUNCTION_MUST_BE_DEFINED,
+  onOffline: FUNCTION_MUST_BE_DEFINED,
+};
+```
+
+### Timing
+
+```tsx
+export const baseInteractiveTiming = {
+  timeoutMs:   NUMBER_MUST_BE_DEFINED,
+  onTimeout:   FUNCTION_MUST_BE_DEFINED,
+  debounceMs:  NUMBER_MUST_BE_DEFINED,
+  triggers:    [],                        // empty, filled per instance
+  minLoadTime: null,                      // null, filled per instance
+};
+```
+
+### Animation
+
+```tsx
+export const baseInteractiveAnimation = {
+  enter:            ANIMATION_MUST_BE_DEFINED,
+  exit:             ANIMATION_MUST_BE_DEFINED,
+  transitions: {
+    idle_to_hover:       ANIMATION_MUST_BE_DEFINED,
+    hover_to_idle:       ANIMATION_MUST_BE_DEFINED,
+    idle_to_pressed:     ANIMATION_MUST_BE_DEFINED,
+    pressed_to_loading:  ANIMATION_MUST_BE_DEFINED,
+    loading_to_success:  ANIMATION_MUST_BE_DEFINED,
+    loading_to_error:    ANIMATION_MUST_BE_DEFINED,
+  },
+  microFeedback:    ANIMATION_MUST_BE_DEFINED,
+  loadingAnimation: ANIMATION_MUST_BE_DEFINED,
+};
+```
+
+### After the tech lead fills it in
+
+Here is what the states look like after the tech lead makes every decision:
+
+```tsx
+export const baseInteractiveStates = {
+  idle: {
+    visual: { cursor: 'pointer', opacity: 1 },
+    audio:  (ctx) => {},
+    haptic: (ctx) => {},
+    screenreader: { role: 'button' },
+  },
+  hover: {
+    visual: (ctx) => ({
+      cursor: 'pointer',
+      opacity: 1,
+      shadow: isTV() ? config.shadows.high : config.shadows.low,
+      translateY: isTV() ? 0 : -1,
+      scale: isTV() ? config.tv.focusScale : 1,
+    }),
+    audio:  (ctx) => {},
+    haptic: (ctx) => {},
+    screenreader: { role: 'button' },
+  },
+  focused: {
+    visual: (ctx) => ({
+      cursor: 'pointer',
+      opacity: 1,
+      outline: {
+        width: isTV() ? config.tv.focusRing.width
+          : prefersHighContrast() ? 4
+          : config.focusRing.width,
+        color: config.focusRing.color,
+        offset: isTV() ? config.tv.focusRing.offset : config.focusRing.offset,
+        style: config.focusRing.style,
+      },
+      ...(prefersHighContrast() && {
+        borderWidth: 3, borderStyle: 'solid', borderColor: config.colors.focus,
+      }),
+    }),
+    audio:  (ctx) => {},
+    haptic: (ctx) => {},
+    screenreader: { role: 'button' },
+  },
+  pressed: {
+    visual: { cursor: 'pointer', scale: 0.97, opacity: 0.95 },
+    audio:  (ctx) => {
+      if (!isSilentMode()) playSound(config.sounds.click);
+    },
+    haptic: (ctx) => { fireHaptic(config.haptics.tap); },
+    screenreader: { role: 'button' },
+  },
+  loading: {
+    visual: { cursor: 'wait', opacity: 0.9 },
+    audio:  (ctx) => {},
+    haptic: (ctx) => {},
+    screenreader: { role: 'button', liveRegion: 'polite', state: { busy: true } },
+    announcement: STRING_MUST_BE_DEFINED,  // stays — per instance
+  },
+  success: {
+    visual: { cursor: 'default', opacity: 1 },
+    audio:  (ctx) => {
+      if (!isSilentMode()) playSound(config.sounds.success);
+    },
+    haptic: (ctx) => { fireHaptic(config.haptics.success); },
+    screenreader: { role: 'button', liveRegion: 'polite' },
+    announcement: STRING_MUST_BE_DEFINED,  // stays — per instance
+  },
+  error: {
+    visual: { cursor: 'default', opacity: 1 },
+    audio:  (ctx) => {
+      if (!isSilentMode()) playSound(config.sounds.error);
+    },
+    haptic: (ctx) => { fireHaptic(config.haptics.error); },
+    screenreader: { role: 'button', liveRegion: 'assertive' },
+    announcement: STRING_MUST_BE_DEFINED,  // stays — per instance
+  },
+  disabled: {
+    visual: { cursor: 'not-allowed', opacity: 0.5 },
+    audio:  (ctx) => {},
+    haptic: (ctx) => {},
+    screenreader: { role: 'button', state: { disabled: true } },
+  },
+};
+```
+
+---
+
+## BaseInput
+
+**Used by:** TextInput, NumberInput, PasswordInput, Textarea, JsonInput, ColorInput, PinInput, FileInput, NativeSelect, Slider, RangeSlider, Rating, Chip (when used as input), and more.
+
+### States (8)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Empty or pre-filled, not focused |
+| `hover` | Mouse hovering over the input |
+| `focused` | Input has focus, ready for typing |
+| `typing` | User is actively entering text |
+| `validating` | Input value is being validated (async) |
+| `valid` | Validation passed |
+| `invalid` | Validation failed |
+| `disabled` | Input is not interactive |
+
+Each state has the same 4 modalities as BaseInteractive (`visual`, `audio`, `haptic`, `screenreader`).
+
+### Extra Slots
+
+```tsx
+// What happens when the user presses Enter?
+// TextInput: submit. Textarea: newline. NumberInput: nothing.
+// The base leaves this as FUNCTION_MUST_BE_DEFINED.
+keyboard.bindings.Enter: FUNCTION_MUST_BE_DEFINED,
+
+// Debounce for validation/search
+debounceMs: NUMBER_MUST_BE_DEFINED,
+
+// Validation callback
+onValidate: FUNCTION_MUST_BE_DEFINED,
+```
+
+The Enter key decision is critical. The base cannot know if Enter should submit the form, insert a newline, or do nothing. Every input component must decide.
+
+### Mobile input font size
+
+All BaseInput components enforce `config.typography.mobileInputFontSize` (16px) on mobile to prevent iOS Safari from auto-zooming on focus.
+
+---
+
+## BaseStatic
+
+**Used by:** Text, Title, Badge, Code, Highlight, Mark, Kbd, Blockquote, Table (cells), List, and more.
+
+### States (2)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Default display state |
+| `focused` | When the element receives focus (via tabbing or programmatic focus) |
+
+Minimal scaffolding. Most slots are `() => {}` because static elements do not play sounds or fire haptics. But two things are still `MUST_BE_DEFINED`:
+
+- **Focus ring** — even static elements can receive focus. The focus ring must be defined.
+- **Screenreader role** — every element needs a role. Is it a `status`? A `heading`? A `note`? The base cannot know.
+
+```tsx
+export const baseStaticStates = {
+  idle: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        (ctx) => {},               // static elements don't make sound
+    haptic:       (ctx) => {},               // static elements don't vibrate
+    screenreader: OBJECT_MUST_BE_DEFINED,    // role must be defined
+  },
+  focused: {
+    visual:       OBJECT_MUST_BE_DEFINED,    // focus ring must be defined
+    audio:        (ctx) => {},
+    haptic:       (ctx) => {},
+    screenreader: OBJECT_MUST_BE_DEFINED,
+  },
+};
+```
+
+---
+
+## BaseOverlay
+
+**Used by:** Modal, Drawer, Dialog, Popover, HoverCard, Tooltip, Menu, Select (dropdown), Combobox, ColorPicker (popup), and more.
+
+### States (5)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Overlay is not visible, not in DOM or hidden |
+| `opening` | Transition from closed to open (animation in progress) |
+| `open` | Overlay is visible and interactive |
+| `closing` | Transition from open to closed (animation in progress) |
+| `closed` | Overlay has finished closing |
+
+### Extra Slots
+
+```tsx
+// What happens when the user clicks outside the overlay?
+onClickOutside: FUNCTION_MUST_BE_DEFINED,
+
+// What happens when the user scrolls the page behind the overlay?
+onScrollBehind: FUNCTION_MUST_BE_DEFINED,
+
+// What happens when the user presses Escape?
+onEscape: FUNCTION_MUST_BE_DEFINED,
+
+// Focus management
+focus: {
+  onOpen:  FUNCTION_MUST_BE_DEFINED,  // where does focus go when overlay opens?
+  onClose: FUNCTION_MUST_BE_DEFINED,  // where does focus return when overlay closes?
+},
+
+// Tab trapping
+keyboard: {
+  Tab: {
+    trap: BOOLEAN_MUST_BE_DEFINED,  // should Tab be trapped inside the overlay?
+  },
+},
+```
+
+Every overlay must answer: what happens on click outside? What happens on Escape? Where does focus go? Is Tab trapped? These are not optional. Modals typically trap focus and close on Escape. Tooltips do not trap focus and close on any interaction. The tech lead decides the defaults. The component overrides what is specific.
+
+---
+
+## BaseContainer
+
+**Used by:** Paper, Card, Group, Stack, Grid, SimpleGrid, Flex, Center, Container, Space, Divider, Fieldset, and more.
+
+### States (1)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Default layout state |
+
+The simplest base. Containers are layout primitives — they arrange children. They do not have hover, pressed, or loading states. The base exists so containers pass Kevlar validation and have consistent structure.
+
+```tsx
+export const baseContainerStates = {
+  idle: {
+    visual:       OBJECT_MUST_BE_DEFINED,
+    audio:        (ctx) => {},
+    haptic:       (ctx) => {},
+    screenreader: OBJECT_MUST_BE_DEFINED,
+  },
+};
+```
+
+Even a container needs a screenreader role. Is it a `group`? A `region`? A `list`? The base makes you decide.
+
+---
+
+## BaseFeedback
+
+**Used by:** Notification, Alert, Toast, Progress, Loader, Skeleton, and more.
+
+### States (5)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Feedback element is not yet visible |
+| `entering` | Transition animation into view |
+| `visible` | Feedback is shown and readable |
+| `dismissing` | Transition animation out of view |
+| `dismissed` | Feedback has been removed |
+
+### Extra Slots
+
+```tsx
+// Auto-dismiss timing
+autoDismissMs: NUMBER_MUST_BE_DEFINED,  // use config.timing.autoDismissMs or custom
+
+// What happens when auto-dismiss timer fires?
+onAutoDismiss: FUNCTION_MUST_BE_DEFINED,
+
+// Swipe to dismiss (mobile)
+onSwipeToDismiss: FUNCTION_MUST_BE_DEFINED,
+
+// Click to dismiss
+onClickToDismiss: FUNCTION_MUST_BE_DEFINED,
+```
+
+The tech lead must decide: do notifications auto-dismiss? After how long? Can users swipe them away on mobile? Can they click to dismiss? Each answer is a conscious decision.
+
+---
+
+## BaseNavigation
+
+**Used by:** Tabs, Breadcrumbs, NavLink, Pagination, Stepper, Anchor, and more.
+
+### States (5)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Navigation item at rest |
+| `hover` | Mouse hovering |
+| `focused` | Keyboard focus |
+| `active` | Currently selected/active item |
+| `disabled` | Item is not interactive |
+
+### Roving Tabindex
+
+Navigation components use roving tabindex for keyboard interaction. The base scaffolds the keyboard bindings:
+
+```tsx
+keyboard: {
+  bindings: {
+    ArrowUp:    FUNCTION_MUST_BE_DEFINED,  // move focus to previous item
+    ArrowDown:  FUNCTION_MUST_BE_DEFINED,  // move focus to next item
+    ArrowLeft:  FUNCTION_MUST_BE_DEFINED,  // move focus to previous item (horizontal)
+    ArrowRight: FUNCTION_MUST_BE_DEFINED,  // move focus to next item (horizontal)
+    Home:       FUNCTION_MUST_BE_DEFINED,  // move focus to first item
+    End:        FUNCTION_MUST_BE_DEFINED,  // move focus to last item
+    Enter:      FUNCTION_MUST_BE_DEFINED,  // activate focused item
+    Space:      FUNCTION_MUST_BE_DEFINED,  // activate focused item
+  },
+},
+```
+
+The tech lead fills these with roving tabindex logic. Arrow keys move focus between items. Home/End jump to first/last. Enter/Space activate.
+
+---
+
+## BaseDisclosure
+
+**Used by:** Accordion, Spoiler, Collapse, Details, and more.
+
+### States (5)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Disclosure trigger at rest |
+| `hover` | Mouse hovering over trigger |
+| `focused` | Trigger has keyboard focus |
+| `open` | Content is expanded/revealed |
+| `closed` | Content is collapsed/hidden |
+
+### Extra Slots
+
+```tsx
+// What happens when the user toggles the disclosure?
+onToggle: FUNCTION_MUST_BE_DEFINED,
+
+// Expand/collapse animation
+animation: {
+  expand:   ANIMATION_MUST_BE_DEFINED,
+  collapse: ANIMATION_MUST_BE_DEFINED,
+},
+```
+
+The tech lead decides: what animation plays when an accordion opens? When it closes? Does it slide, fade, or just appear? `prefersReducedMotion()` must be checked inline.
+
+---
+
+## BaseMedia
+
+**Used by:** Image, Avatar, BackgroundImage, and more.
+
+### States (4)
+
+| State | What it represents |
+|-------|-------------------|
+| `idle` | Before loading begins |
+| `loading` | Media is being fetched |
+| `loaded` | Media has loaded successfully |
+| `error` | Media failed to load |
+
+### Extra Slots
+
+```tsx
+// Network strategy
+network: {
+  onFast:    FUNCTION_MUST_BE_DEFINED,  // load full resolution? preload?
+  onSlow:    FUNCTION_MUST_BE_DEFINED,  // load lower resolution? show LQIP?
+  onOffline: FUNCTION_MUST_BE_DEFINED,  // show cached? show placeholder? show nothing?
+},
+
+// Fallback chain
+fallback: {
+  onError: FUNCTION_MUST_BE_DEFINED,  // what to show when the image fails to load
+},
+```
+
+The tech lead must decide the project's image loading strategy:
+
+- **LQIP** (Low Quality Image Placeholder) — show a tiny blurred version while the full image loads?
+- **Network adaptation** — serve smaller images on slow connections?
+- **Offline behavior** — show cached images? A placeholder icon? Nothing?
+- **Error fallback** — a broken image icon? A colored rectangle? A default avatar?
+
+```tsx
+// Example: after tech lead fills BaseMedia
+network: {
+  onFast:    (ctx) => { ctx.loadFullResolution(); },
+  onSlow:    (ctx) => { ctx.loadLowResolution(); ctx.showLQIP(); },
+  onOffline: (ctx) => {
+    if (ctx.hasCached()) { ctx.showCached(); }
+    else { ctx.showPlaceholder(); }
+  },
+},
+fallback: {
+  onError: (ctx) => { ctx.showFallbackIcon(); },
+},
+```
+
+---
+
+## Summary
+
+| Base | States | Key extras |
+|------|--------|------------|
+| **BaseInteractive** | 8 (idle, hover, focused, pressed, loading, success, error, disabled) | Actions (rage click, double click, click during loading, focus escape), 4 input methods, network, timing, animation |
+| **BaseInput** | 8 (idle, hover, focused, typing, validating, valid, invalid, disabled) | Enter key decision, debounceMs, onValidate |
+| **BaseStatic** | 2 (idle, focused) | Focus ring, screenreader role |
+| **BaseOverlay** | 5 (idle, opening, open, closing, closed) | onClickOutside, onScrollBehind, onEscape, focus management, Tab trap |
+| **BaseContainer** | 1 (idle) | Screenreader role |
+| **BaseFeedback** | 5 (idle, entering, visible, dismissing, dismissed) | autoDismissMs, onSwipeToDismiss, onClickToDismiss |
+| **BaseNavigation** | 5 (idle, hover, focused, active, disabled) | Roving tabindex (ArrowUp/Down, Home/End) |
+| **BaseDisclosure** | 5 (idle, hover, focused, open, closed) | onToggle, expand/collapse animation |
+| **BaseMedia** | 4 (idle, loading, loaded, error) | Network strategy, LQIP, fallback chain |

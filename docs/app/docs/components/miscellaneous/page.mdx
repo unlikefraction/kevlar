@@ -1,0 +1,273 @@
+# Miscellaneous
+
+These components span multiple bases or serve utility purposes that do not fit neatly into other categories.
+
+---
+
+### Collapse
+
+**Base:** BaseDisclosure
+
+**States:** idle, expanded, collapsed
+
+**Dev-fill slots:**
+- `orientation` -- vertical (default) or horizontal
+- Animation duration, easing
+
+**Key behavior:** Animates the expand/collapse of content with a slide transition. Does not include a trigger -- you provide your own button or control. `aria-hidden` on the collapsed content. Animation respects `prefers-reduced-motion`.
+
+```tsx
+import { Collapse, Button } from './kevlar';
+
+<Button onKevlarAction={async () => { toggle(); }}
+  announce={{ loading: '', success: '', error: '' }}>
+  Toggle content
+</Button>
+<Collapse in={opened}>
+  <Text>Collapsible content here</Text>
+</Collapse>
+```
+
+---
+
+### Divider
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders a horizontal or vertical `hr` element. Purely decorative. `role="separator"`. Can include a label in the center.
+
+```tsx
+import { Divider } from './kevlar';
+
+<Divider />
+<Divider label="Or" labelPosition="center" />
+<Divider orientation="vertical" />
+```
+
+---
+
+### FocusTrap
+
+**Base:** BaseContainer (utility)
+
+**States:** active, inactive
+
+**Dev-fill slots:**
+- `active` -- whether focus trapping is enabled
+
+**Key behavior:** Traps keyboard focus within its children. Tab at the last focusable element wraps to the first. Shift+Tab at the first wraps to the last. Used internally by Modal and Drawer. The `dangerously_skip_focus_trap` shame prop disables this on overlays.
+
+```tsx
+import { FocusTrap } from './kevlar';
+
+<FocusTrap active={isModalOpen}>
+  <div>
+    <input />
+    <button>Submit</button>
+    <button>Cancel</button>
+  </div>
+</FocusTrap>
+```
+
+---
+
+### Marquee
+
+**Base:** BaseStatic
+
+**States:** idle, paused
+
+**Dev-fill slots:**
+- `speed` -- scroll speed
+- `pauseOnHover` -- pause animation when hovered
+
+**Key behavior:** Horizontal scrolling content. Animation pauses on hover (configurable). `prefers-reduced-motion` pauses the animation entirely. Screen readers read the full content without scrolling effect.
+
+```tsx
+import { Marquee } from './kevlar';
+
+<Marquee speed={40} pauseOnHover>
+  <Text>Breaking news: Kevlar v1.0 released</Text>
+</Marquee>
+```
+
+---
+
+### Portal
+
+**Base:** BaseContainer (utility)
+
+**States:** N/A
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders children into a different DOM node (default: `document.body`). Used internally by overlays to escape stacking context and overflow clipping. No visual output of its own.
+
+```tsx
+import { Portal } from './kevlar';
+
+<Portal>
+  <div style={{ position: 'fixed', top: 0, right: 0 }}>
+    Rendered outside the component tree
+  </div>
+</Portal>
+```
+
+---
+
+### ScrollArea
+
+**Base:** BaseContainer
+
+**States:** idle, scrolling
+
+**Dev-fill slots:**
+- Custom scrollbar styling
+- `onScrollPositionChange` -- scroll tracking
+
+**Key behavior:** Custom scrollbar component that replaces native scrollbars. Accessible: keyboard scrolling works normally. Touch: native scroll physics. Mouse: custom scrollbar thumb with drag support. `role="region"` with `aria-label` when content is scrollable.
+
+```tsx
+import { ScrollArea } from './kevlar';
+
+<ScrollArea h={250}>
+  <Text>Long content that scrolls...</Text>
+</ScrollArea>
+```
+
+---
+
+### Scroller
+
+**Base:** BaseContainer + BaseInteractive (for navigation buttons)
+
+**States:** idle, scrolling
+
+**Dev-fill slots:**
+- Navigation button behavior (prev/next)
+- `announce.scrolled` -- screen reader announcement
+
+**Key behavior:** Horizontal scroll container with navigation buttons (left/right arrows). Buttons appear/disappear based on scroll position. Touch: swipe to scroll. Keyboard: Arrow Left/Right when focused on the container.
+
+```tsx
+import { Scroller } from './kevlar';
+
+<Scroller>
+  <Card>Item 1</Card>
+  <Card>Item 2</Card>
+  <Card>Item 3</Card>
+  <Card>Item 4</Card>
+</Scroller>
+```
+
+---
+
+### Transition
+
+**Base:** BaseContainer (utility)
+
+**States:** entering, entered, exiting, exited
+
+**Dev-fill slots:**
+- `transition` -- animation name or config
+- `duration` -- animation duration
+- `timingFunction` -- easing
+
+**Key behavior:** Wraps a child element with mount/unmount animations. Respects `prefers-reduced-motion` (reduces or disables animation). Provides `mounted` state control.
+
+```tsx
+import { Transition } from './kevlar';
+
+<Transition mounted={visible} transition="fade" duration={200}>
+  {(styles) => <div style={styles}>Animated content</div>}
+</Transition>
+```
+
+---
+
+### VisuallyHidden
+
+**Base:** BaseStatic (utility)
+
+**States:** N/A
+
+**Dev-fill slots:** None
+
+**Key behavior:** Hides content visually but keeps it accessible to screen readers. Uses the standard clip/overflow technique (`position: absolute`, `width: 1px`, `height: 1px`, `overflow: hidden`). Used for accessible labels that should not be visible.
+
+```tsx
+import { VisuallyHidden } from './kevlar';
+
+<button>
+  <SearchIcon />
+  <VisuallyHidden>Search</VisuallyHidden>
+</button>
+```
+
+---
+
+### Box
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Polymorphic base component. Renders a `div` by default but can render as any HTML element or React component via the `component` prop. All Mantine style props are available. This is the lowest-level building block.
+
+```tsx
+import { Box } from './kevlar';
+
+<Box component="section" p="md" bg="gray.0">
+  Section content
+</Box>
+```
+
+---
+
+### Paper
+
+**Base:** BaseStatic or BaseContainer
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders a `div` with shadow, border, and background styling from the design config. Acts as a visual surface for grouping content. No interaction states.
+
+```tsx
+import { Paper, Text } from './kevlar';
+
+<Paper shadow="sm" p="md" radius="md">
+  <Text>Content on a raised surface</Text>
+</Paper>
+```
+
+---
+
+### Fieldset
+
+**Base:** BaseContainer + BaseDisclosure (when collapsible)
+
+**States:** idle, disabled
+
+**Dev-fill slots:**
+- `legend` -- fieldset legend text
+
+**Key behavior:** Renders a semantic `fieldset` element with a `legend`. Groups related form inputs. When `disabled`, all child inputs are also disabled. Can be collapsible (inherits BaseDisclosure for expand/collapse).
+
+```tsx
+import { Fieldset, TextInput } from './kevlar';
+
+<Fieldset legend="Personal information">
+  <TextInput label="Name" onKevlarAction={async () => {}}
+    announce={{ invalid: 'Name is required' }} />
+  <TextInput label="Email" onKevlarAction={async () => {}}
+    announce={{ invalid: 'Invalid email' }} />
+</Fieldset>
+```

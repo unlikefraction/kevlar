@@ -1,0 +1,207 @@
+# Typography
+
+Typography components inherit from **BaseStatic**. They are presentational -- no interaction states, no async actions. The base provides focus ring decisions (for when text is selectable or linked) and screen reader role definitions.
+
+---
+
+### Text
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders a `p`, `span`, or other text element. No overrides from BaseStatic. All styling comes from the design config.
+
+```tsx
+import { Text } from './kevlar';
+
+<Text size="lg" fw={700}>
+  Hello, world
+</Text>
+
+<Text c="dimmed" size="sm">
+  Secondary text with muted color
+</Text>
+```
+
+---
+
+### Title
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders heading elements (`h1` through `h6`). The `order` prop maps to the heading level. Screen readers use the heading level for document outline navigation.
+
+```tsx
+import { Title } from './kevlar';
+
+<Title order={1}>Page Title</Title>
+<Title order={2}>Section Heading</Title>
+<Title order={3}>Subsection</Title>
+```
+
+---
+
+### Blockquote
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders a `blockquote` element with optional citation. Screen readers announce it as a blockquote. Visual styling (left border, indentation) comes from the base.
+
+```tsx
+import { Blockquote } from './kevlar';
+
+<Blockquote cite="Grace Hopper" icon={<QuoteIcon />}>
+  The most dangerous phrase in the language is "we've always done it this way."
+</Blockquote>
+```
+
+---
+
+### Code
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Inline `code` element or `pre` block (when `block` prop is set). Monospace font from the design config. No syntax highlighting built in -- use `Highlight` or a third-party library for that.
+
+```tsx
+import { Code } from './kevlar';
+
+{/* Inline */}
+<Text>Run <Code>npm install</Code> to get started.</Text>
+
+{/* Block */}
+<Code block>
+{`const config = defineDesignConfig({
+  breakpoints: { ... }
+});`}
+</Code>
+```
+
+---
+
+### Highlight
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Highlights specified substrings within text. The `highlight` prop accepts a string or array of strings to highlight. Highlighting is case-insensitive. Uses `mark` elements for the highlighted portions.
+
+```tsx
+import { Highlight } from './kevlar';
+
+<Highlight highlight="Kevlar">
+  Kevlar is a component scaffold for Mantine v9.
+  Every Kevlar component forces conscious decisions.
+</Highlight>
+```
+
+---
+
+### Mark
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders a `mark` element (highlighted text). Purely visual -- the underlying `mark` element conveys semantic emphasis to screen readers.
+
+```tsx
+import { Mark } from './kevlar';
+
+<Text>
+  This is <Mark>important</Mark> information.
+</Text>
+```
+
+---
+
+### List
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders `ul` (unordered) or `ol` (ordered) lists. Supports nested lists. Screen readers announce the list type and item count. Custom icons can replace bullet points.
+
+```tsx
+import { List } from './kevlar';
+
+<List>
+  <List.Item>Fill in design.config.ts</List.Item>
+  <List.Item>Replace every MUST_BE_DEFINED in base components</List.Item>
+  <List.Item>Start using components</List.Item>
+</List>
+```
+
+---
+
+### Table
+
+**Base:** BaseStatic
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Renders a semantic HTML `table` with `thead`, `tbody`, `tfoot`. Screen readers use table navigation (Ctrl+Alt+Arrow keys). Column headers are associated with cells via `th` scope. Responsive behavior (horizontal scroll vs. stacked) is defined in the base.
+
+```tsx
+import { Table } from './kevlar';
+
+<Table>
+  <Table.Thead>
+    <Table.Tr>
+      <Table.Th>Name</Table.Th>
+      <Table.Th>Status</Table.Th>
+    </Table.Tr>
+  </Table.Thead>
+  <Table.Tbody>
+    <Table.Tr>
+      <Table.Td>Widget Pro</Table.Td>
+      <Table.Td>Active</Table.Td>
+    </Table.Tr>
+  </Table.Tbody>
+</Table>
+```
+
+---
+
+### TypographyStylesProvider
+
+**Base:** BaseStatic (wrapper)
+
+**States:** idle
+
+**Dev-fill slots:** None
+
+**Key behavior:** Applies Kevlar typography styles to raw HTML content (e.g., from a CMS or Markdown renderer). Wraps content and applies consistent heading sizes, paragraph spacing, list styles, and code formatting from the design config.
+
+```tsx
+import { TypographyStylesProvider } from './kevlar';
+
+<TypographyStylesProvider>
+  <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
+</TypographyStylesProvider>
+```

@@ -1,0 +1,169 @@
+# Feedback
+
+Feedback components inherit from **BaseFeedback**. They appear, deliver a message, and (usually) disappear. Key decisions: auto-dismiss timing, dismiss gestures, stacking behavior, and screen reader announcements.
+
+---
+
+### Notification
+
+**Base:** BaseFeedback
+
+**States:** entering, visible, exiting, dismissed
+
+**Dev-fill slots:**
+- `announce.entering` -- screen reader announcement (required)
+- `stacking.maxVisible` -- how many notifications visible at once
+- `stacking.onOverflow` -- queue, replace oldest, or collapse
+- Auto-dismiss timing, dismiss gesture (swipe, click X)
+
+**Key behavior:** Appears with enter animation, optionally auto-dismisses after a timeout. Screen reader announces the message via ARIA live region. Stacking manager controls z-order and overflow behavior.
+
+```tsx
+import { Notification } from './kevlar';
+
+<Notification
+  title="File uploaded"
+  announce={{ entering: 'File uploaded successfully' }}
+>
+  Your document has been saved.
+</Notification>
+```
+
+---
+
+### Alert
+
+**Base:** BaseFeedback
+
+**States:** entering, visible, exiting, dismissed
+
+**Dev-fill slots:**
+- `announce.entering` -- screen reader announcement (required)
+- `variant` -- info, success, warning, error
+- Dismiss behavior (closable or persistent)
+
+**Key behavior:** Persistent by default (does not auto-dismiss). `role="alert"` for error/warning variants, `role="status"` for info/success. Closable alerts have a close button that follows ActionIcon behavior.
+
+```tsx
+import { Alert } from './kevlar';
+
+<Alert
+  title="Warning"
+  variant="warning"
+  announce={{ entering: 'Warning: your session will expire in 5 minutes' }}
+>
+  Your session will expire in 5 minutes. Save your work.
+</Alert>
+```
+
+---
+
+### Progress
+
+**Base:** BaseFeedback
+
+**States:** idle, active, completed
+
+**Dev-fill slots:**
+- `announce.active` -- screen reader announcement for progress updates
+- `aria-label` -- describes what is being measured
+
+**Key behavior:** Linear progress bar. Supports determinate (with `value`) and indeterminate (animated) modes. Screen reader announces progress percentage at configurable intervals (not on every frame).
+
+```tsx
+import { Progress } from './kevlar';
+
+<Progress
+  value={65}
+  aria-label="Upload progress"
+  announce={{ active: 'Upload 65% complete' }}
+/>
+```
+
+---
+
+### RingProgress
+
+**Base:** BaseFeedback
+
+**States:** idle, active, completed
+
+**Dev-fill slots:**
+- `announce.active` -- screen reader announcement
+- `aria-label` -- describes what is being measured
+
+**Key behavior:** Circular progress indicator. Supports multiple sections with different colors. Center can contain custom content (label, icon, percentage).
+
+```tsx
+import { RingProgress } from './kevlar';
+
+<RingProgress
+  sections={[{ value: 40, color: 'blue' }]}
+  aria-label="Storage usage"
+  announce={{ active: '40% storage used' }}
+/>
+```
+
+---
+
+### SemiCircleProgress
+
+**Base:** BaseFeedback
+
+**States:** idle, active, completed
+
+**Dev-fill slots:**
+- `announce.active` -- screen reader announcement
+- `aria-label` -- describes what is being measured
+
+**Key behavior:** Half-circle progress indicator. Useful for gauge-style displays. Same ARIA pattern as Progress.
+
+```tsx
+import { SemiCircleProgress } from './kevlar';
+
+<SemiCircleProgress
+  value={75}
+  aria-label="Performance score"
+  announce={{ active: 'Performance score: 75 out of 100' }}
+/>
+```
+
+---
+
+### Loader
+
+**Base:** BaseFeedback
+
+**States:** visible
+
+**Dev-fill slots:**
+- `aria-label` -- describes what is loading (defaults to "Loading")
+
+**Key behavior:** Indeterminate loading indicator (spinner, dots, bars). Always announces "Loading" to screen readers when it appears. Animation respects `prefers-reduced-motion` (simplified or paused animation).
+
+```tsx
+import { Loader } from './kevlar';
+
+<Loader aria-label="Loading search results" />
+```
+
+---
+
+### Skeleton
+
+**Base:** BaseFeedback
+
+**States:** loading, loaded
+
+**Dev-fill slots:**
+- `aria-label` -- describes the content being loaded
+
+**Key behavior:** Placeholder skeleton that shows while content is loading. Shimmer animation respects `prefers-reduced-motion`. Transitions to actual content with a configurable reveal animation. `aria-busy="true"` while loading.
+
+```tsx
+import { Skeleton } from './kevlar';
+
+<Skeleton visible={isLoading} aria-label="Loading article content">
+  <Text>This content appears after loading</Text>
+</Skeleton>
+```

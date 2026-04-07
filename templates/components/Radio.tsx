@@ -1,0 +1,121 @@
+import { Radio as MantineRadio, type RadioProps as MantineRadioProps } from '@mantine/core';
+import {
+  baseInputStates,
+  baseInputActions,
+  baseInputInput,
+  baseInputNetwork,
+  baseInputTiming,
+  baseInputAnimation,
+  baseInputValidation,
+} from '../base/BaseInput';
+import { STRING_MUST_BE_DEFINED, FUNCTION_MUST_BE_DEFINED } from '@unlikefraction/kevlar/sentinels';
+import { useKevlarInteraction, deepMerge } from '@unlikefraction/kevlar/runtime';
+import type { KevlarContext, DeepPartial } from '@unlikefraction/kevlar/types';
+
+// Radio inherits Checkbox pattern minus indeterminate.
+// screenreader.role: radio.
+// keyboard.bindings.Space: toggle, keyboard.bindings.Enter: explicitly nothing.
+// keyboard.bindings.ArrowUp/ArrowDown: move selection within radio group.
+
+const states = {
+  idle: {
+    ...baseInputStates.idle,
+    screenreader: { role: 'radio' as const },
+  },
+  hover: {
+    ...baseInputStates.hover,
+    screenreader: { role: 'radio' as const },
+  },
+  focused: {
+    ...baseInputStates.focused,
+    screenreader: { role: 'radio' as const },
+  },
+  checked: {
+    ...baseInputStates.valid,
+    screenreader: { role: 'radio' as const, state: { checked: true } },
+  },
+  unchecked: {
+    ...baseInputStates.idle,
+    screenreader: { role: 'radio' as const, state: { checked: false } },
+  },
+  disabled: {
+    ...baseInputStates.disabled,
+    screenreader: { role: 'radio' as const, state: { disabled: true } },
+  },
+};
+
+const actions    = { ...baseInputActions };
+const input      = {
+  ...baseInputInput,
+  touch: {
+    ...baseInputInput.touch,
+    onTap: (ctx: KevlarContext) => { ctx.toggle(); },
+  },
+  keyboard: {
+    ...baseInputInput.keyboard,
+    bindings: {
+      ...baseInputInput.keyboard.bindings,
+      Space:     (ctx: KevlarContext) => { ctx.toggle(); },
+      Enter:     () => {},  // explicitly nothing
+      ArrowUp:   (ctx: KevlarContext) => { ctx.movePrevious(); },
+      ArrowDown: (ctx: KevlarContext) => { ctx.moveNext(); },
+    },
+  },
+};
+const network    = { ...baseInputNetwork };
+const timing     = { ...baseInputTiming };
+const animation  = { ...baseInputAnimation };
+const validation = { ...baseInputValidation };
+
+
+// ─── PROPS ─────────────────────────────────────────────────────
+
+export type KevlarRadioProps = MantineRadioProps & {
+  // REQUIRED
+  onKevlarAction: (ctx: KevlarContext) => Promise<void>;
+  announce: { invalid: string };
+
+  // OPTIONAL — override anything from the base
+  states?:      DeepPartial<typeof states>;
+  userActions?: Partial<typeof actions>;
+  input?:       DeepPartial<typeof input>;
+  network?:     Partial<typeof network>;
+  timing?:      Partial<typeof timing>;
+  animation?:   DeepPartial<typeof animation>;
+  validation?:  Partial<typeof validation>;
+};
+
+
+// ─── THE COMPONENT ─────────────────────────────────────────────
+
+export function Radio(props: KevlarRadioProps) {
+  const {
+    onKevlarAction, announce: ann,
+    states: so, userActions: ao, input: io, network: no_,
+    timing: to, animation: animo, validation: vo,
+    ...mantineProps
+  } = props;
+
+  const spec = deepMerge(
+    { states, userActions: actions, input, network, timing, animation, validation },
+    { states: so, userActions: ao, input: io, network: no_, timing: to, animation: animo, validation: vo },
+  );
+
+  // Fill the blanks that survived from base
+  spec.states.checked.announcement = ann.invalid;
+
+  const interaction = useKevlarInteraction(spec, {
+    onAction: onKevlarAction,
+  });
+
+  return (
+    <MantineRadio
+      {...mantineProps}
+      {...interaction.handlers}
+      style={interaction.currentVisual}
+      disabled={interaction.state === 'disabled'}
+      checked={interaction.value as boolean}
+      onChange={interaction.onChange}
+    />
+  );
+}
